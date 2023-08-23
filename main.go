@@ -8,26 +8,24 @@ import (
 	"io/ioutil"
 	"net/http"
 	"webhookTemplate/messageSender"
+	"webhookTemplate/terminal"
 )
 
 func webhookHandler(w http.ResponseWriter, request *http.Request) {
-
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusBadGateway)
 			return
-		} else {
-			w.WriteHeader(http.StatusOK)
 		}
 	}(request.Body)
+
 	content, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		return
 	}
 
 	typeName := jsoniter.Get(content, "type_name").ToString()
-
 	switch typeName {
 	// 主播下播
 	case "StopLive":
@@ -43,7 +41,10 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 					jsoniter.Get(content, "hook_time").ToString(),
 					jsoniter.Get(content, "room_Info", "lock_till").ToString()),
 			}
-			msg.Send()
+			err := msg.Send()
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 		} else {
 			// 主播正常下播
 			var msg = messageSender.Message{
@@ -55,7 +56,10 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 					jsoniter.Get(content, "room_info", "area_v2_name").ToString(),
 					jsoniter.Get(content, "hook_time").ToString()),
 			}
-			msg.Send()
+			err := msg.Send()
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 		}
 		break
 	case "StartLive":
@@ -69,16 +73,24 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 				jsoniter.Get(content, "room_info", "area_v2_name").ToString(),
 				jsoniter.Get(content, "hook_time").ToString()),
 		}
-		msg.Send()
+		err := msg.Send()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		break
 	default:
-		// 未知类型
+		// 别的不关心，所以没写
+		w.WriteHeader(http.StatusOK)
 	}
-
 }
 
 func main() {
-	log.Infof("Go!")
+	_ = terminal.DisableQuickEdit()
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:   true,
+		FullTimestamp: true,
+	})
+	log.Infof("启动成功，监听：127.0.0.1:14000")
 	// 当有请求访问ws时，执行此回调方法
 	handler := http.HandlerFunc(webhookHandler)
 	http.HandleFunc("/webhook", handler)
@@ -86,7 +98,5 @@ func main() {
 	err := http.ListenAndServe("127.0.0.1:14000", nil)
 	if err != nil {
 		log.Fatalf("监听端口异常，%v", err)
-	} else {
-		log.Infof("监听端口成功，端口：14000")
 	}
 }
