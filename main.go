@@ -173,11 +173,11 @@ func main() {
 		FullTimestamp: true,
 	})
 	log.Infof("启动，监听：127.0.0.1:14000/webhook")
-	log.Infof("启动，监听：127.0.0.1:14000/")
+	//log.Infof("启动，监听：127.0.0.1:14000/")
 	// 当有请求访问ws时，执行此回调方法
 	handler := http.HandlerFunc(webhookHandler)
 	http.HandleFunc("/webhook", handler)
-	http.HandleFunc("/", handler)
+	//http.HandleFunc("/", handler)
 	// 监听127.0.0.1:14000
 	err := http.ListenAndServe("127.0.0.1:14000", nil)
 	if err != nil {

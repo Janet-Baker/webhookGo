@@ -74,10 +74,10 @@ func SendWeWorkMessage(message Message) error {
 	}
 	var body = fmt.Sprintf("{\"touser\":\"@all\","+
 		"\"msgtype\":\"markdown\","+
-		"\"agentid\":\"1000003\","+
+		"\"agentid\":\"%s\","+
 		"\"markdown\":{\"content\":\"# %s\n\n%s\"},"+
 		"\"enable_duplicate_check\":0,"+
-		"\"duplicate_check_interval\":600}", message.Title, message.Content)
+		"\"duplicate_check_interval\":600}", secrets.AgentID, message.Title, message.Content)
 	target := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s&debug=1", secrets.WeworkAccessToken)
 	resp, err := http.Post(target, "application/json", bytes.NewReader([]byte(body)))
 	defer func(Body io.ReadCloser) {
