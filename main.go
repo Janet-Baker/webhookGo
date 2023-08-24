@@ -12,6 +12,8 @@ import (
 )
 
 func webhookHandler(w http.ResponseWriter, request *http.Request) {
+	log.Infof("收到webhook请求")
+	// defer request.Body.Close()
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -24,12 +26,12 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		return
 	}
-
-	typeName := jsoniter.Get(content, "type_name").ToString()
-	switch typeName {
-	// 主播下播
-	case "StopLive":
-		if jsoniter.Get(content, "room_Info", "IsLocked").ToBool() {
+	log.Debugf(string(content))
+	hookType := jsoniter.Get(content, "type").ToInt()
+	switch hookType {
+	//	StopLive 主播下播
+	case 1:
+		if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
 			// 主播被封号了
 			var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 被封号啦！快去围观吧", jsoniter.Get(content, "room_Info", "uname").ToString()),
@@ -63,8 +65,9 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		break
-	case "StartLive":
-		// 主播开播
+
+	//	StartLive 主播开播
+	case 0:
 		var msg = messageSender.Message{
 			Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "room_Info", "uname").ToString()),
 			Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
@@ -80,23 +83,27 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		break
-	case "StartRec":
-		// 开始录制
+
+	//	开始录制 StartRec
+	case 2:
 		log.Infof("开始录制：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "RecComplete":
-		// 录制结束
+
+	//	RecComplete 录制结束
+	case 3:
 		log.Infof("录制结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "CancelRec":
-		// 录制被取消
+
+	//	CancelRec 录制被取消
+	case 4:
 		log.Infof("录制被取消：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "TranscodingComplete":
-		// 完成转码
+
+	//	TranscodingComplete 完成转码
+	case 5:
 		var msg = messageSender.Message{
 			Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
 			Content: fmt.Sprintf("主播：%s\n标题：%s\n转码完成时间：%s",
@@ -110,58 +117,76 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		break
-	case "SaveDanmuComplete":
-		// 保存弹幕文件完成
+
+	//	SaveDanmuComplete 保存弹幕文件完成
+	case 6:
 		log.Infof("保存弹幕文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "SaveSCComplete":
-		//	保存SC文件完成
+
+	//	SaveSCComplete 保存SC文件完成
+	case 7:
 		log.Infof("保存SC文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "SaveGiftComplete":
-		//	保存礼物文件完成
+
+	//	SaveGiftComplete 保存礼物文件完成
+	case 8:
 		log.Infof("保存礼物文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "SaveGuardComplete":
-		//	保存大航海文件完成
+
+	//	SaveGuardComplete 保存大航海文件完成
+	case 9:
 		log.Infof("保存大航海文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "RunShellComplete":
-		//	执行Shell命令完成
+
+	//	RunShellComplete 执行Shell命令完成
+	case 10:
 		log.Infof("执行Shell命令完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "DownloadEndMissionSuccess":
-		//	下载任务成功结束
+
+	//	DownloadEndMissionSuccess 下载任务成功结束
+	case 11:
 		log.Infof("下载任务成功结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
-	case "SpaceIsInsufficientWarn":
-		//	剩余空间不足
+
+	//	SpaceIsInsufficientWarn 剩余空间不足
+	case 12:
 		log.Infof("剩余空间不足：%s", content)
 		w.WriteHeader(http.StatusOK)
 		break
-	case "LoginFailure":
-		//	登陆失效
+
+	//	LoginFailure 登陆失效
+	case 13:
 		log.Errorf("登陆失效")
 		w.WriteHeader(http.StatusOK)
 		break
-	case "LoginWillExpireSoon":
-		//	登陆即将失效
+
+	//	LoginWillExpireSoon 登陆即将失效
+	case 14:
 		log.Warnf("登陆即将失效")
 		w.WriteHeader(http.StatusOK)
 		break
-	case "UpdateAvailable":
-		//	有可用新版本
+
+	//	UpdateAvailable 有可用新版本
+	case 15:
 		log.Infof("有可用新版本：%s", jsoniter.Get(content, "version").ToString())
 		w.WriteHeader(http.StatusOK)
 		break
+
+	//	ShellExecutionComplete 执行Shell命令结束
+	case 16:
+		log.Infof("执行Shell命令结束：%+v", content)
+		w.WriteHeader(http.StatusOK)
+		break
+
+	//	别的不关心，所以没写
 	default:
-		// 别的不关心，所以没写
+		log.Warnf("未知的webhook请求：%+v", content)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -172,12 +197,14 @@ func main() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
+	log.SetLevel(log.DebugLevel)
+	log.Warnf("已开启Debug模式.")
 	log.Infof("启动，监听：127.0.0.1:14000/webhook")
-	//log.Infof("启动，监听：127.0.0.1:14000/")
+	log.Infof("启动，监听：127.0.0.1:14000/")
 	// 当有请求访问ws时，执行此回调方法
 	handler := http.HandlerFunc(webhookHandler)
 	http.HandleFunc("/webhook", handler)
-	//http.HandleFunc("/", handler)
+	http.HandleFunc("/", handler)
 	// 监听127.0.0.1:14000
 	err := http.ListenAndServe("127.0.0.1:14000", nil)
 	if err != nil {
