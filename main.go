@@ -7,7 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 	"webhookTemplate/messageSender"
+	"webhookTemplate/secrets"
 	"webhookTemplate/terminal"
 )
 
@@ -35,7 +37,7 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 			// 主播被封号了
 			var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 被封号啦！快去围观吧", jsoniter.Get(content, "room_Info", "uname").ToString()),
-				Content: fmt.Sprintf("- 主播：%s \n\n- 标题：%s \n\n- 分区：%s - %s \n\n- 封禁时间：%s\n\n- 封禁到：%s",
+				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 封禁时间：%s\n\n- 封禁到：%s",
 					jsoniter.Get(content, "room_Info", "uname").ToString(),
 					jsoniter.Get(content, "room_Info", "title").ToString(),
 					jsoniter.Get(content, "room_info", "area_v2_parent_name").ToString(),
@@ -73,8 +75,8 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 			Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
 				jsoniter.Get(content, "room_Info", "uname").ToString(),
 				jsoniter.Get(content, "room_Info", "title").ToString(),
-				jsoniter.Get(content, "room_info", "area_v2_parent_name").ToString(),
-				jsoniter.Get(content, "room_info", "area_v2_name").ToString(),
+				jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
+				jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
 				jsoniter.Get(content, "hook_time").ToString()),
 		}
 		err := msg.Send()
@@ -192,7 +194,9 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
+	// 防止因为选择导致的进程挂起
 	_ = terminal.DisableQuickEdit()
+	// 设置日志
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
@@ -200,11 +204,14 @@ func main() {
 	log.SetLevel(log.DebugLevel)
 	log.Warnf("已开启Debug模式.")
 	log.Infof("启动，监听：127.0.0.1:14000/webhook")
-	log.Infof("启动，监听：127.0.0.1:14000/")
-	// 当有请求访问ws时，执行此回调方法
+	//log.Infof("启动，监听：127.0.0.1:14000/")
+	// 手动初始化包变量，使包变量有访问者，防止被GC清理
+	secrets.WeworkAccessToken = "0"
+	secrets.WeworkAccessTokenExpiresIn = time.Now().Unix()
+	// 当有请求访问时，执行此回调方法
 	handler := http.HandlerFunc(webhookHandler)
 	http.HandleFunc("/webhook", handler)
-	http.HandleFunc("/", handler)
+	//http.HandleFunc("/", handler)
 	// 监听127.0.0.1:14000
 	err := http.ListenAndServe("127.0.0.1:14000", nil)
 	if err != nil {
