@@ -193,7 +193,7 @@ func webhookHandler(w http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func main() {
+func init() {
 	// 防止因为选择导致的进程挂起
 	_ = terminal.DisableQuickEdit()
 	// 设置日志
@@ -201,13 +201,17 @@ func main() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
+	// 设置Debug模式
 	//log.SetLevel(log.DebugLevel)
 	//log.Warnf("已开启Debug模式.")
-	log.Infof("启动，监听：127.0.0.1:14000/webhook")
-	//log.Infof("启动，监听：127.0.0.1:14000/")
 	// 手动初始化包变量，使包变量有访问者，防止被GC清理
 	secrets.WeworkAccessToken = "0"
 	secrets.WeworkAccessTokenExpiresIn = time.Now().Unix()
+}
+
+func main() {
+	log.Infof("启动，监听：127.0.0.1:14000/webhook")
+	//log.Infof("启动，监听：127.0.0.1:14000/")
 	// 当有请求访问时，执行此回调方法
 	handler := http.HandlerFunc(webhookHandler)
 	http.HandleFunc("/webhook", handler)
