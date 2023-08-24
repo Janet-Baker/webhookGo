@@ -16,7 +16,7 @@ import (
 func updateAccessToken() error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Debugf("更新企业微信应用的access_token")
-	resp, err := http.Get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + secrets.WeworkCorpId + "&corpsecret=" + secrets.AppSecret + "&debug=1")
+	resp, err := http.Get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + secrets.WeworkCorpId + "&corpsecret=" + secrets.AppSecret)
 	if err != nil {
 		log.Errorf("更新企业微信应用的access_token失败：%s", err.Error())
 		return err
@@ -61,7 +61,7 @@ func SendWeWorkMessage(message Message) error {
 		"\"enable_duplicate_check\":1,"+
 		"\"duplicate_check_interval\":600}", secrets.AgentID, message.Title, message.Content)
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
-	target := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s&debug=1", secrets.WeworkAccessToken)
+	target := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", secrets.WeworkAccessToken)
 	resp, err := http.Post(target, "application/json", bytes.NewReader([]byte(body)))
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()

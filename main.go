@@ -201,8 +201,8 @@ func main() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
-	log.SetLevel(log.DebugLevel)
-	log.Warnf("已开启Debug模式.")
+	//log.SetLevel(log.DebugLevel)
+	//log.Warnf("已开启Debug模式.")
 	log.Infof("启动，监听：127.0.0.1:14000/webhook")
 	//log.Infof("启动，监听：127.0.0.1:14000/")
 	// 手动初始化包变量，使包变量有访问者，防止被GC清理
