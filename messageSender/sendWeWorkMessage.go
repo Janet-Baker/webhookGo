@@ -83,5 +83,6 @@ func SendWeWorkMessage(message Message) error {
 	if err != nil {
 		return err
 	}
+	log.Debugf("发送企业微信应用消息成功：%s", message)
 	return nil
 }
