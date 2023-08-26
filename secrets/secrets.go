@@ -8,4 +8,4 @@ var WeworkCorpId = ""
 var AppSecret = ""
 var AgentID = ""
 var WeworkAccessToken string
-var WeworkAccessTokenExpiresIn int64
+var WeworkAccessTokenExpireAt int64

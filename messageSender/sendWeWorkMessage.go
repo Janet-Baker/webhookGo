@@ -9,9 +9,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 	"webhookTemplate/secrets"
 )
+
+var updateAccessTokenLock sync.Mutex
 
 func updateAccessToken() error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
@@ -38,20 +41,26 @@ func updateAccessToken() error {
 		return errors.New(jsoniter.Get(content, "errmsg").ToString())
 	}
 	secrets.WeworkAccessToken = jsoniter.Get(content, "access_token").ToString()
-	secrets.WeworkAccessTokenExpiresIn = time.Now().Unix() + jsoniter.Get(content, "expires_in").ToInt64()
+	secrets.WeworkAccessTokenExpireAt = time.Now().Unix() + jsoniter.Get(content, "expires_in").ToInt64()
 	log.Debugf("企业微信AccessToken：%s", secrets.WeworkAccessToken)
-	log.Debugf("有效期至：%v", secrets.WeworkAccessTokenExpiresIn)
+	log.Debugf("有效期至：%v", secrets.WeworkAccessTokenExpireAt)
 	return nil
 }
 
 func SendWeWorkMessage(message Message) error {
 	log.Debugf("发送企业微信应用消息：%s", message)
 	// 检查token是否过期
-	if time.Now().Unix() > secrets.WeworkAccessTokenExpiresIn {
-		err := updateAccessToken()
-		if err != nil {
-			return err
+	if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
+		// 更新之前需要加锁，防止有线程正在更新
+		updateAccessTokenLock.Lock()
+		// 再次判断过期时间，防止被其他线程更新过了
+		if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
+			err := updateAccessToken()
+			if err != nil {
+				return err
+			}
 		}
+		updateAccessTokenLock.Unlock()
 	}
 	// 制作要发送的 Markdown 消息
 	var body = fmt.Sprintf("{\"touser\":\"@all\","+
