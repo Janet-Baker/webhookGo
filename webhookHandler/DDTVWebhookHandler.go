@@ -15,7 +15,6 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
 	}(request.Body)
@@ -31,7 +30,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 	// 判断是否是重复的webhook请求
 	webhookId := jsoniter.Get(content, "id").ToString()
-	log.Info(webhookId)
+	log.Debug(webhookId)
 	if webhookMessageIdList.IsContain(webhookId) {
 		log.Warnf("重复的webhook请求：%s", webhookId)
 		return
@@ -54,10 +53,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 								jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
 								jsoniter.Get(content, "hook_time").ToString()),
 						}
-						err := msg.Send()
-						if err != nil {
-							w.WriteHeader(http.StatusInternalServerError)
-						}*/
+						msg.Send()*/
 		break
 
 	//	1 StopLive 主播下播
@@ -96,10 +92,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 							jsoniter.Get(content, "hook_time").ToString(),
 							jsoniter.Get(content, "room_Info", "lock_till").ToString()),
 					}
-					err := msg.Send()
-					if err != nil {
-						return
-					}
+					msg.Send()
 				} else {
 					var msg = messageSender.Message{
 						Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
@@ -108,10 +101,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 							jsoniter.Get(content, "room_Info", "title").ToString(),
 							jsoniter.Get(content, "hook_time").ToString()),
 					}
-					err := msg.Send()
-					if err != nil {
-						return
-					}
+					msg.Send()
 				}*/
 		break
 
@@ -155,10 +145,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 					jsoniter.Get(content, "hook_time").ToString(),
 					jsoniter.Get(content, "room_Info", "lock_till").ToString()),
 			}
-			err := msg.Send()
-			if err != nil {
-				return
-			}
+			msg.Send()
 		}
 		break
 

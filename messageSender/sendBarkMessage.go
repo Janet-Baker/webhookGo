@@ -8,7 +8,7 @@ import (
 	"webhookTemplate/secrets"
 )
 
-func SendBarkMessage(message Message) error {
+func SendBarkMessage(message Message) {
 	log.Debugf("发送 Bark 消息：%+v", message)
 	resp, err := http.Get("https://api.day.app/" + secrets.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content))
 	defer func(Body io.ReadCloser) {
@@ -19,9 +19,9 @@ func SendBarkMessage(message Message) error {
 	}(resp.Body)
 	if err != nil {
 		log.Errorf("发送消息失败：%s", err.Error())
-		return err
+		return
 	} else {
 		log.Debugf("发送Bark消息成功：%+v", message)
 	}
-	return nil
+	return
 }

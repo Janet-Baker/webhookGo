@@ -30,6 +30,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 
 	// 判断是否是重复的webhook请求
 	webhookId := jsoniter.Get(content, "EventId").ToString()
+	log.Debug(webhookId)
 	if webhookMessageIdList.IsContain(webhookId) {
 		log.Warnf("重复的webhook请求：%s", webhookId)
 		return
@@ -72,10 +73,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 				jsoniter.Get(content, "EventData", "AreaNameChild").ToString(),
 				jsoniter.Get(content, "EventTimestamp").ToString()),
 		}
-		err := msg.Send()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		msg.Send()
 		break
 
 	//直播结束 StreamEnded
@@ -89,10 +87,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 				jsoniter.Get(content, "EventData", "AreaNameParent").ToString(),
 				jsoniter.Get(content, "EventData", "AreaNameChild").ToString()),
 		}
-		err := msg.Send()
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		msg.Send()
 		break
 
 	//	别的不关心，所以没写

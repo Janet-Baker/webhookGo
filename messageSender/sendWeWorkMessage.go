@@ -47,20 +47,20 @@ func updateAccessToken() error {
 	return nil
 }
 
-func SendWeWorkMessage(message Message) error {
+func SendWeWorkMessage(message Message) {
 	log.Debugf("发送企业微信应用消息：%s", message)
 	// 检查token是否过期
 	if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
 		// 更新之前需要加锁，防止有线程正在更新
 		updateAccessTokenLock.Lock()
+		defer updateAccessTokenLock.Unlock()
 		// 再次判断过期时间，防止被其他线程更新过了
 		if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
 			err := updateAccessToken()
 			if err != nil {
-				return err
+				return
 			}
 		}
-		updateAccessTokenLock.Unlock()
 	}
 	// 制作要发送的 Markdown 消息
 	var body = fmt.Sprintf("{\"touser\":\"@all\","+
@@ -82,16 +82,13 @@ func SendWeWorkMessage(message Message) error {
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("发送企业微信应用消息失败：%s", err.Error())
-		return err
+		return
 	}
 	errcode := jsoniter.Get(content, "errcode").ToString()
 	if errcode != "0" {
 		log.Errorf("发送企业微信应用消息失败：%s", jsoniter.Get(content, "errmsg").ToString())
-		return err
-	}
-	if err != nil {
-		return err
+		return
 	}
 	log.Debugf("发送企业微信应用消息成功：%s", message)
-	return nil
+	return
 }
