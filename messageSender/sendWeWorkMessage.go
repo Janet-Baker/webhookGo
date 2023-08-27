@@ -68,7 +68,7 @@ func SendWeWorkMessage(message Message) error {
 		"\"agentid\":\"%s\","+
 		"\"markdown\":{\"content\":\"# %s\n\n%s\"},"+
 		"\"enable_duplicate_check\":1,"+
-		"\"duplicate_check_interval\":600}", secrets.AgentID, message.Title, message.Content)
+		"\"duplicate_check_interval\":3600}", secrets.AgentID, message.Title, message.Content)
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
 	target := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", secrets.WeworkAccessToken)
 	resp, err := http.Post(target, "application/json", bytes.NewReader([]byte(body)))
