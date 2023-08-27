@@ -40,21 +40,27 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 	switch eventType {
 	//录制开始 SessionStarted
 	case "SessionStarted":
+		log.Debugf("B站录播姬 录制开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 		break
 	//文件打开 FileOpening
 	case "FileOpening":
+		log.Debugf("B站录播姬 文件打开 %s", jsoniter.Get(content, "EventData", "RelativePath").ToString())
 		break
 	//文件关闭 FileClosed
 	case "FileClosed":
+		log.Debugf("B站录播姬 文件关闭 %s", jsoniter.Get(content, "EventData", "RelativePath").ToString())
 		break
 	//录制结束 SessionEnded
 	case "SessionEnded":
+		log.Debugf("B站录播姬 录制结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 		break
 	//直播开始 StreamStarted
 	case "StreamStarted":
+		log.Debugf("B站录播姬 直播开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 		break
 	//直播结束 StreamEnded
 	case "StreamEnded":
+		log.Debugf("B站录播姬 直播结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 		break
 	//	别的不关心，所以没写
 	default:

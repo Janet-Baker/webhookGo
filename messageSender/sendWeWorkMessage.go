@@ -18,7 +18,7 @@ var updateAccessTokenLock sync.Mutex
 
 func updateAccessToken() error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
-	log.Debugf("更新企业微信应用的access_token")
+	log.Infof("更新企业微信应用的access_token")
 	resp, err := http.Get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + secrets.WeworkCorpId + "&corpsecret=" + secrets.AppSecret)
 	if err != nil {
 		log.Errorf("更新企业微信应用的access_token失败：%s", err.Error())
