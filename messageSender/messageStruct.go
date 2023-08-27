@@ -13,7 +13,7 @@ type Message struct {
 }
 
 func (m *Message) Send() {
-	log.Infof("发送消息：%+v", *m)
+	log.Debugf("发送消息：%+v", *m)
 
 	// 并发发送消息
 	var wg sync.WaitGroup
