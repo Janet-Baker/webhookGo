@@ -28,21 +28,25 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	go func() {
 		// 读取请求内容
 		content, err := ioutil.ReadAll(request.Body)
+		ddtvwg.Done()
 		if err != nil {
+			log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
 			return
 		}
-		ddtvwg.Done()
 		log.Infof("收到 DDTV webhook 请求")
 		log.Debugf(string(content))
 
 		// 判断是否是重复的webhook请求
 		webhookId := jsoniter.Get(content, "id").ToString()
 		log.Debug(webhookId)
+		webhookMessageIdListLock.Lock()
 		if webhookMessageIdList.IsContain(webhookId) {
+			webhookMessageIdListLock.Unlock()
 			log.Warnf("重复的webhook请求：%s", webhookId)
 			return
 		} else {
 			webhookMessageIdList.EnQueue(webhookId)
+			webhookMessageIdListLock.Unlock()
 		}
 
 		// 判断事件类型

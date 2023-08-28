@@ -56,10 +56,5 @@ func (s *CustomizedQueue) IsContain(item string) bool {
 			return true
 		}
 	}
-	/*	for _, eachItem := range s.data {
-		if eachItem == item {
-			return true
-		}
-	}*/
 	return false
 }

@@ -28,21 +28,25 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 	go func() {
 		// 读取请求内容
 		content, err := ioutil.ReadAll(request.Body)
+		bililiveRecoderWaitGroup.Done()
 		if err != nil {
+			log.Errorf("读取 BililiveRecoder webhook 请求失败：%s", err.Error())
 			return
 		}
-		bililiveRecoderWaitGroup.Done()
 		log.Infof("收到 BililiveRecoder webhook 请求")
 		log.Debugf(string(content))
 
 		// 判断是否是重复的webhook请求
 		webhookId := jsoniter.Get(content, "EventId").ToString()
 		log.Debug(webhookId)
+		webhookMessageIdListLock.Lock()
 		if webhookMessageIdList.IsContain(webhookId) {
+			webhookMessageIdListLock.Unlock()
 			log.Warnf("重复的 BililiveRecoder webhook请求：%s", webhookId)
 			return
 		} else {
 			webhookMessageIdList.EnQueue(webhookId)
+			webhookMessageIdListLock.Unlock()
 		}
 
 		// 判断事件类型
@@ -99,7 +103,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 
 		//	别的不关心，所以没写
 		default:
-			log.Warnf("B站录播姬 未知的webhook请求：%+v", content)
+			log.Warnf("BililiveRecoder 未知的webhook请求：%+v", content)
 		}
 	}()
 	bililiveRecoderWaitGroup.Wait()
