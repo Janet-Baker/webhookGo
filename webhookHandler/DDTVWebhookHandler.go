@@ -91,29 +91,14 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		//	5 TranscodingComplete 完成转码
 		case 5:
 			log.Debugf("DDTV 完成转码：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
-			/*		if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
-						// 主播被封号了
-						var msg = messageSender.Message{
-							Title: fmt.Sprintf("%s 喜提直播间封禁！DDTV转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
-							Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 封禁时间：%s\n\n- 封禁到：%s",
-								jsoniter.Get(content, "room_Info", "uname").ToString(),
-								jsoniter.Get(content, "room_Info", "title").ToString(),
-								jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
-								jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
-								jsoniter.Get(content, "hook_time").ToString(),
-								jsoniter.Get(content, "room_Info", "lock_till").ToString()),
-						}
-						msg.Send()
-					} else {
-						var msg = messageSender.Message{
-							Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
-							Content: fmt.Sprintf("主播：%s\n标题：%s\n转码完成时间：%s",
-								jsoniter.Get(content, "room_Info", "uname").ToString(),
-								jsoniter.Get(content, "room_Info", "title").ToString(),
-								jsoniter.Get(content, "hook_time").ToString()),
-						}
-						msg.Send()
-					}*/
+			/*var msg = messageSender.Message{
+				Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
+				Content: fmt.Sprintf("主播：%s\n标题：%s\n转码完成时间：%s",
+					jsoniter.Get(content, "room_Info", "uname").ToString(),
+					jsoniter.Get(content, "room_Info", "title").ToString(),
+					jsoniter.Get(content, "hook_time").ToString()),
+			}
+			msg.Send()*/
 			break
 
 		//	6 SaveDanmuComplete 保存弹幕文件完成
