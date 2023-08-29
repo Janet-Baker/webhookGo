@@ -17,8 +17,8 @@ func init() {
 		FullTimestamp: true,
 	})
 	// 设置Debug模式
-	//log.SetLevel(log.DebugLevel)
-	//log.Warnf("已开启Debug模式.")
+	/*log.SetLevel(log.DebugLevel)
+	log.Warnf("已开启Debug模式.")*/
 	// 手动初始化包变量，使包变量有访问者，防止被GC清理
 	secrets.WeworkAccessToken = "0"
 	secrets.WeworkAccessTokenExpireAt = 0

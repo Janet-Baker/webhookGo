@@ -55,17 +55,17 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		switch hookType {
 		//	0 StartLive 主播开播
 		case 0:
-			log.Debugf("DDTV 主播开播：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
-			/*				var msg = messageSender.Message{
-								Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "room_Info", "uname").ToString()),
-								Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
-									jsoniter.Get(content, "room_Info", "uname").ToString(),
-									jsoniter.Get(content, "room_Info", "title").ToString(),
-									jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
-									jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
-									jsoniter.Get(content, "hook_time").ToString()),
-							}
-							msg.Send()*/
+			log.Debugf("DDTV 主播开播：%s", jsoniter.Get(content, "user_info", "name").ToString())
+			var msg = messageSender.Message{
+				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "user_info", "name").ToString()),
+				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
+					jsoniter.Get(content, "room_Info", "uname").ToString(),
+					jsoniter.Get(content, "room_Info", "title").ToString(),
+					jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
+					jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
+					jsoniter.Get(content, "hook_time").ToString()),
+			}
+			msg.Send()
 			break
 
 		//	1 StopLive 主播下播
@@ -134,7 +134,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 				// 主播被封号了
 				var msg = messageSender.Message{
 					Title: fmt.Sprintf("%s 喜提直播间封禁！", jsoniter.Get(content, "room_Info", "uname").ToString()),
-					Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 封禁时间：%s\n\n- 封禁到：%s",
+					Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s\n- 封禁时间：%s\n- 封禁到：%s",
 						jsoniter.Get(content, "room_Info", "uname").ToString(),
 						jsoniter.Get(content, "room_Info", "title").ToString(),
 						jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
@@ -148,22 +148,22 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	12 SpaceIsInsufficientWarn 剩余空间不足
 		case 12:
-			log.Debugf("DDTV 剩余空间不足：%s", content)
+			log.Warnf("DDTV 剩余空间不足：%s", content)
 			break
 
 		//	13 LoginFailure 登陆失效
 		case 13:
-			log.Debugf("DDTV 登陆失效")
+			log.Errorf("DDTV 登陆失效")
 			break
 
 		//	14 LoginWillExpireSoon 登陆即将失效
 		case 14:
-			log.Debugf("DDTV 登陆即将失效")
+			log.Warnf("DDTV 登陆即将失效")
 			break
 
 		//	15 UpdateAvailable 有可用新版本
 		case 15:
-			log.Debugf("DDTV 有可用新版本：%s", jsoniter.Get(content, "version").ToString())
+			log.Infof("DDTV 有可用新版本：%s", jsoniter.Get(content, "version").ToString())
 			break
 
 		//	16 ShellExecutionComplete 执行Shell命令结束

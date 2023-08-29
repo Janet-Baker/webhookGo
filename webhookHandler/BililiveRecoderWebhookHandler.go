@@ -76,7 +76,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 			log.Debugf("B站录播姬 直播开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "EventData", "Name").ToString()),
-				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
+				Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s\n- 开播时间：%s",
 					jsoniter.Get(content, "EventData", "Name").ToString(),
 					jsoniter.Get(content, "EventData", "Title").ToString(),
 					jsoniter.Get(content, "EventData", "AreaNameParent").ToString(),
@@ -91,7 +91,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 			log.Debugf("B站录播姬 直播结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 直播结束", jsoniter.Get(content, "EventData", "Name").ToString()),
-				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s",
+				Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s",
 					jsoniter.Get(content, "EventData", "Name").ToString(),
 					jsoniter.Get(content, "EventData", "Title").ToString(),
 					jsoniter.Get(content, "EventData", "AreaNameParent").ToString(),
