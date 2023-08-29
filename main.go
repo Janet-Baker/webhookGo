@@ -27,9 +27,11 @@ func init() {
 func main() {
 	log.Infof("启动，监听：http://127.0.0.1:14000/ddtv")
 	log.Infof("启动，监听：http://127.0.0.1:14000/bililiverecoder")
-	//log.Infof("启动，监听：127.0.0.1:14000/")
+	log.Infof("启动，监听：http://127.0.0.1:14000/blrec")
+	//log.Infof("启动，监听：http://127.0.0.1:14000/")
 	http.HandleFunc("/ddtv", webhookHandler.DDTVWebhookHandler)
 	http.HandleFunc("/bililiverecoder", webhookHandler.BililiveRecoderWebhookHandler)
+	http.HandleFunc("/blrec", webhookHandler.BlrecWebhookHandler)
 	//http.HandleFunc("/", handler)
 	// 监听127.0.0.1:14000
 	err := http.ListenAndServe("127.0.0.1:14000", nil)

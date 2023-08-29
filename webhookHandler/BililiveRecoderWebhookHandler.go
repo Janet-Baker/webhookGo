@@ -1,16 +1,15 @@
 package webhookHandler
 
 import (
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"webhookTemplate/messageSender"
 )
 
+// BililiveRecoderWebhookHandler 处理 BililiveRecoder 的 webhook 请求
 func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	// defer request.Body.Close()
 	defer func(Body io.ReadCloser) {
@@ -23,12 +22,12 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 	w.WriteHeader(http.StatusOK)
 
 	// process other steps in another goroutine
-	var bililiveRecoderWaitGroup sync.WaitGroup
-	bililiveRecoderWaitGroup.Add(1)
+	var ioReaderWaitGroup sync.WaitGroup
+	ioReaderWaitGroup.Add(1)
 	go func() {
 		// 读取请求内容
 		content, err := ioutil.ReadAll(request.Body)
-		bililiveRecoderWaitGroup.Done()
+		ioReaderWaitGroup.Done()
 		if err != nil {
 			log.Errorf("读取 BililiveRecoder webhook 请求失败：%s", err.Error())
 			return
@@ -75,7 +74,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 		//直播开始 StreamStarted
 		case "StreamStarted":
 			log.Debugf("B站录播姬 直播开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
-			var msg = messageSender.Message{
+			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "EventData", "Name").ToString()),
 				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
 					jsoniter.Get(content, "EventData", "Name").ToString(),
@@ -84,13 +83,13 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 					jsoniter.Get(content, "EventData", "AreaNameChild").ToString(),
 					jsoniter.Get(content, "EventTimestamp").ToString()),
 			}
-			msg.Send()
+			msg.Send()*/
 			break
 
 		//直播结束 StreamEnded
 		case "StreamEnded":
 			log.Debugf("B站录播姬 直播结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
-			var msg = messageSender.Message{
+			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 直播结束", jsoniter.Get(content, "EventData", "Name").ToString()),
 				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s",
 					jsoniter.Get(content, "EventData", "Name").ToString(),
@@ -98,7 +97,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 					jsoniter.Get(content, "EventData", "AreaNameParent").ToString(),
 					jsoniter.Get(content, "EventData", "AreaNameChild").ToString()),
 			}
-			msg.Send()
+			msg.Send()*/
 			break
 
 		//	别的不关心，所以没写
@@ -106,5 +105,6 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 			log.Warnf("BililiveRecoder 未知的webhook请求：%+v", content)
 		}
 	}()
-	bililiveRecoderWaitGroup.Wait()
+	// 等待响应体读取完毕
+	ioReaderWaitGroup.Wait()
 }

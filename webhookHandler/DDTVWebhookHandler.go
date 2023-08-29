@@ -11,6 +11,7 @@ import (
 	"webhookTemplate/messageSender"
 )
 
+// DDTVWebhookHandler 处理 DDTV 的 webhook 请求
 func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	// defer request.Body.Close()
 	defer func(Body io.ReadCloser) {
@@ -23,12 +24,12 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	// process other steps in another goroutine
-	var ddtvwg sync.WaitGroup
-	ddtvwg.Add(1)
+	var ioReaderWaitGroup sync.WaitGroup
+	ioReaderWaitGroup.Add(1)
 	go func() {
 		// 读取请求内容
 		content, err := ioutil.ReadAll(request.Body)
-		ddtvwg.Done()
+		ioReaderWaitGroup.Done()
 		if err != nil {
 			log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
 			return
@@ -175,5 +176,6 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 			log.Warnf("DDTV 未知的webhook请求：%+v", content)
 		}
 	}()
-	ddtvwg.Wait()
+	// 等待响应体读取完毕
+	ioReaderWaitGroup.Wait()
 }
