@@ -3,12 +3,11 @@ package messageSender
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 	"webhookTemplate/secrets"
@@ -18,19 +17,27 @@ var updateAccessTokenLock sync.Mutex
 
 func updateAccessToken() error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
-	log.Infof("更新企业微信应用的access_token")
-	resp, err := http.Get("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + secrets.WeworkCorpId + "&corpsecret=" + secrets.AppSecret)
+	log.Info("更新企业微信应用的access_token")
+	// 构造请求地址
+	var urlBuilder strings.Builder
+	urlBuilder.Grow(363)
+	urlBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=")
+	urlBuilder.WriteString(secrets.WeworkCorpId)
+	urlBuilder.WriteString("&corpsecret=")
+	urlBuilder.WriteString(secrets.AppSecret)
+	// 发送请求
+	resp, err := http.Get(urlBuilder.String())
 	if err != nil {
 		log.Errorf("更新企业微信应用的access_token失败：%s", err.Error())
 		return err
 	}
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
+		errCloser := Body.Close()
+		if errCloser != nil {
 			log.Errorf("关闭消息发送响应失败：%s", err.Error())
 		}
 	}(resp.Body)
-	content, err := ioutil.ReadAll(resp.Body)
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("更新企业微信应用的access_token失败：读取响应消息失败：%s", err.Error())
 		return err
@@ -42,13 +49,14 @@ func updateAccessToken() error {
 	}
 	secrets.WeworkAccessToken = jsoniter.Get(content, "access_token").ToString()
 	secrets.WeworkAccessTokenExpireAt = time.Now().Unix() + jsoniter.Get(content, "expires_in").ToInt64()
-	log.Debugf("企业微信AccessToken：%s", secrets.WeworkAccessToken)
-	log.Debugf("有效期至：%v", secrets.WeworkAccessTokenExpireAt)
+	if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debugf("企业微信AccessToken：%s", secrets.WeworkAccessToken)
+		log.Debugf("有效期至：%v", secrets.WeworkAccessTokenExpireAt)
+	}
 	return nil
 }
 
 func SendWeWorkMessage(message Message) {
-	log.Debugf("发送企业微信应用消息：%s", message)
 	// 检查token是否过期
 	if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
 		// 更新之前需要加锁，防止有线程正在更新
@@ -63,32 +71,46 @@ func SendWeWorkMessage(message Message) {
 		}
 	}
 	// 制作要发送的 Markdown 消息
-	var body = fmt.Sprintf("{\"touser\":\"@all\","+
-		"\"msgtype\":\"markdown\","+
-		"\"agentid\":\"%s\","+
-		"\"markdown\":{\"content\":\"# %s\n\n%s\"},"+
-		"\"enable_duplicate_check\":1,"+
-		"\"duplicate_check_interval\":3600}", secrets.AgentID, message.Title, message.Content)
+	var bodyBuffer bytes.Buffer
+	bodyBuffer.WriteString("{\"touser\":\"@all\",\"msgtype\":\"markdown\",\"agentid\":\"")
+	bodyBuffer.WriteString(secrets.AgentID)
+	bodyBuffer.WriteString("\",\"markdown\":{\"content\":\"# ")
+	bodyBuffer.WriteString(message.Title)
+	bodyBuffer.WriteString("\n")
+	bodyBuffer.WriteString(message.Content)
+	bodyBuffer.WriteString("\"},\"enable_duplicate_check\":1,\"duplicate_check_interval\":3600}")
+
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
-	target := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", secrets.WeworkAccessToken)
-	resp, err := http.Post(target, "application/json", bytes.NewReader([]byte(body)))
+	var targetBuilder strings.Builder
+	targetBuilder.Grow(318)
+	targetBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=")
+	targetBuilder.WriteString(secrets.WeworkAccessToken)
+
+	// 发送请求
+	resp, err := http.Post(targetBuilder.String(), "application/json", &bodyBuffer)
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Errorf("关闭消息发送响应失败：%s", err.Error())
+		errCloser := Body.Close()
+		if errCloser != nil {
+			log.Errorf("发送企业微信应用消息失败：关闭消息发送响应失败：%s", errCloser.Error())
 		}
 	}(resp.Body)
-	// 读取响应消息
-	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Errorf("发送企业微信应用消息失败：%s", err.Error())
 		return
 	}
-	errcode := jsoniter.Get(content, "errcode").ToString()
-	if errcode != "0" {
-		log.Errorf("发送企业微信应用消息失败：%s", jsoniter.Get(content, "errmsg").ToString())
+	// 读取响应消息
+	content, errReader := io.ReadAll(resp.Body)
+	if errReader != nil {
+		log.Errorf("发送企业微信应用消息失败：读取响应内容失败：%s", errReader.Error())
 		return
 	}
-	log.Debugf("发送企业微信应用消息成功：%s", message)
+	errcode := jsoniter.Get(content, "errcode").ToString()
+	if errcode != "0" {
+		log.Errorf("发送企业微信应用消息失败：服务器返回错误：%s", jsoniter.Get(content, "errmsg").ToString())
+		return
+	}
+	if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debugf("发送企业微信应用消息成功：%+v", message)
+	}
 	return
 }

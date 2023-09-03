@@ -1,12 +1,11 @@
 package webhookHandler
 
 import (
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"webhookTemplate/messageSender"
 )
@@ -28,22 +27,29 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 	ioReaderWaitGroup.Add(1)
 	go func() {
 		// 读取请求内容
-		content, err := ioutil.ReadAll(request.Body)
+		content, err := io.ReadAll(request.Body)
 		ioReaderWaitGroup.Done()
 		if err != nil {
-			log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("读取 DDTV webhook 请求失败：")
+			logBuilder.WriteString(err.Error())
+			log.Error(logBuilder.String())
 			return
 		}
-		log.Infof("收到 DDTV webhook 请求")
-		log.Debugf(string(content))
+		log.Info("收到 DDTV webhook 请求")
+		if log.IsLevelEnabled(log.DebugLevel) {
+			log.Debug(string(content))
+		}
 
 		// 判断是否是重复的webhook请求
 		webhookId := jsoniter.Get(content, "id").ToString()
-		log.Debug(webhookId)
 		webhookMessageIdListLock.Lock()
 		if webhookMessageIdList.IsContain(webhookId) {
 			webhookMessageIdListLock.Unlock()
-			log.Warnf("重复的webhook请求：%s", webhookId)
+			var logBuilder strings.Builder
+			logBuilder.WriteString("重复的webhook请求：")
+			logBuilder.WriteString(webhookId)
+			log.Warn(logBuilder.String())
 			return
 		} else {
 			webhookMessageIdList.EnQueue(webhookId)
@@ -55,15 +61,34 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		switch hookType {
 		//	0 StartLive 主播开播
 		case 0:
-			log.Infof("DDTV 主播开播：%s", jsoniter.Get(content, "user_info", "name").ToString())
+			// 输出日志
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 主播开播：")
+			logBuilder.WriteString(jsoniter.Get(content, "user_info", "name").ToString())
+			log.Info(logBuilder.String())
+			// 构建消息
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.WriteString(jsoniter.Get(content, "user_info", "name").ToString())
+			msgTitleBuilder.WriteString(" 开播了")
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+			msgContentBuilder.WriteString("\n- 开播时间：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "hook_time").ToString())
+			// 发送消息
 			var msg = messageSender.Message{
-				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "user_info", "name").ToString()),
-				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
-					jsoniter.Get(content, "room_Info", "uname").ToString(),
-					jsoniter.Get(content, "room_Info", "title").ToString(),
-					jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
-					jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
-					jsoniter.Get(content, "hook_time").ToString()),
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
 			}
 			msg.Send()
 			break
@@ -71,76 +96,128 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		//	1 StopLive 主播下播
 		case 1:
 			// 主播正常下播
-			log.Infof("DDTV 主播下播：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 主播下播：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
 			break
 
 		//	2 StartRec 开始录制
 		case 2:
-			log.Infof("DDTV 开始录制：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 开始录制：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
 			break
 
 		//	3 RecComplete 录制结束
 		case 3:
-			log.Infof("DDTV 录制结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 录制结束：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
 			break
 
 		//	4 CancelRec 录制被取消
 		case 4:
-			log.Infof("DDTV 录制被取消：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 录制被取消：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
 			break
 
 		//	5 TranscodingComplete 完成转码
 		case 5:
-			log.Infof("DDTV 完成转码：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
-			/*var msg = messageSender.Message{
-				Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
-				Content: fmt.Sprintf("主播：%s\n标题：%s\n转码完成时间：%s",
-					jsoniter.Get(content, "room_Info", "uname").ToString(),
-					jsoniter.Get(content, "room_Info", "title").ToString(),
-					jsoniter.Get(content, "hook_time").ToString()),
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 完成转码：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
 			}
-			msg.Send()*/
 			break
 
 		//	6 SaveDanmuComplete 保存弹幕文件完成
 		case 6:
-			log.Infof("DDTV 保存弹幕文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 保存弹幕文件完成：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	7 SaveSCComplete 保存SC文件完成
 		case 7:
-			log.Debugf("DDTV 保存SC文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 保存SC文件完成：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	8 SaveGiftComplete 保存礼物文件完成
 		case 8:
-			log.Debugf("DDTV 保存礼物文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 保存礼物文件完成：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	9 SaveGuardComplete 保存大航海文件完成
 		case 9:
-			log.Debugf("DDTV 保存大航海文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 保存大航海文件完成：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	10 RunShellComplete 执行Shell命令完成
 		case 10:
-			log.Debugf("DDTV 执行Shell命令完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 执行Shell命令完成：")
+				logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	11 DownloadEndMissionSuccess 下载任务成功结束
 		case 11:
-			log.Infof("DDTV 下载任务成功结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 下载任务成功结束：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
+			// 判断是否是封禁
 			if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
 				// 主播被封号了
+				// 构造消息
+				// 构造消息标题
+				var msgTitleBuilder strings.Builder
+				msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
+				// 构造消息内容
+				var msgContentBuilder strings.Builder
+				msgContentBuilder.WriteString("- 主播：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+				msgContentBuilder.WriteString("\n- 标题：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+				msgContentBuilder.WriteString("\n- 分区：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+				msgContentBuilder.WriteString(" - ")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+				msgContentBuilder.WriteString("\n- 封禁时间：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "hook_time").ToString())
+				msgContentBuilder.WriteString("\n- 封禁到：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+				// 发送消息
 				var msg = messageSender.Message{
-					Title: fmt.Sprintf("%s 喜提直播间封禁！", jsoniter.Get(content, "room_Info", "uname").ToString()),
-					Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s\n- 封禁时间：%s\n- 封禁到：%s",
-						jsoniter.Get(content, "room_Info", "uname").ToString(),
-						jsoniter.Get(content, "room_Info", "title").ToString(),
-						jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString(),
-						jsoniter.Get(content, "room_Info", "area_v2_name").ToString(),
-						jsoniter.Get(content, "hook_time").ToString(),
-						jsoniter.Get(content, "room_Info", "lock_till").ToString()),
+					Title:   msgTitleBuilder.String(),
+					Content: msgContentBuilder.String(),
 				}
 				msg.Send()
 			}
@@ -148,32 +225,46 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	12 SpaceIsInsufficientWarn 剩余空间不足
 		case 12:
-			log.Warnf("DDTV 剩余空间不足：%s", content)
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 剩余空间不足：")
+			logBuilder.Write(content)
+			log.Warn(logBuilder.String())
 			break
 
 		//	13 LoginFailure 登陆失效
 		case 13:
-			log.Errorf("DDTV 登陆失效")
+			log.Error("DDTV 登陆失效")
 			break
 
 		//	14 LoginWillExpireSoon 登陆即将失效
 		case 14:
-			log.Warnf("DDTV 登陆即将失效")
+			log.Warn("DDTV 登陆即将失效")
 			break
 
 		//	15 UpdateAvailable 有可用新版本
 		case 15:
-			log.Debugf("DDTV 有可用新版本：%s", jsoniter.Get(content, "version").ToString())
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 有可用新版本：")
+			logBuilder.WriteString(jsoniter.Get(content, "version").ToString())
+			log.Info(logBuilder.String())
 			break
 
 		//	16 ShellExecutionComplete 执行Shell命令结束
 		case 16:
-			log.Debugf("DDTV 执行Shell命令结束：%+v", content)
+			if log.IsLevelEnabled(log.DebugLevel) {
+				var logBuilder strings.Builder
+				logBuilder.WriteString("DDTV 执行Shell命令结束：")
+				logBuilder.Write(content)
+				log.Debug(logBuilder.String())
+			}
 			break
 
 		//	别的不关心，所以没写
 		default:
-			log.Warnf("DDTV 未知的webhook请求：%+v", content)
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 未知的webhook请求类型：")
+			logBuilder.WriteString(jsoniter.Get(content, "type").ToString())
+			log.Warn(logBuilder.String())
 		}
 	}()
 	// 等待响应体读取完毕

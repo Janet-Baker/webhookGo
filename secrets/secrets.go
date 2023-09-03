@@ -1,11 +1,15 @@
 package secrets
 
 // Bark Secrets
-var BarkSecrets = ""
+const BarkSecrets = ""
 
 // Wework Secrets
-var WeworkCorpId = ""
-var AppSecret = ""
-var AgentID = ""
+const WeworkCorpId = ""
+const AppSecret = ""
+const AgentID = ""
+
+// WeworkAccessToken string 214
 var WeworkAccessToken string
+
+// WeworkAccessTokenExpireAt int64 Timestamp
 var WeworkAccessTokenExpireAt int64

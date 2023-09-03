@@ -3,9 +3,8 @@
 package terminal
 
 import (
-	"os"
-
 	"golang.org/x/sys/windows"
+	"os"
 )
 
 // DisableQuickEdit 禁用快速编辑

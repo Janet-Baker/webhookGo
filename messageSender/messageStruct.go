@@ -13,7 +13,9 @@ type Message struct {
 }
 
 func (m *Message) Send() {
-	log.Debugf("发送消息：%+v", *m)
+	if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debugf("发送消息：%+v", *m)
+	}
 
 	// 并发发送消息
 	var wg sync.WaitGroup
