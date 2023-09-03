@@ -57,7 +57,7 @@ func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		switch hookType {
 		// LiveBeganEvent 主播开播
 		case "LiveBeganEvent":
-			log.Debugf("blrec 主播开播：%s", jsoniter.Get(content, "data", "user_info", "name").ToString())
+			log.Infof("blrec 主播开播：%s", jsoniter.Get(content, "data", "user_info", "name").ToString())
 			var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "data", "user_info", "name").ToString()),
 				Content: fmt.Sprintf("- 主播：[%s](https://live.bilibili.com/%s)\n- 标题：%s\n- 分区：%s - %s\n- 开播时间：%s",
@@ -73,7 +73,7 @@ func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		// LiveEndedEvent 主播下播
 		case "LiveEndedEvent":
-			log.Debugf("blrec 主播下播：%s", jsoniter.Get(content, "data", "user_info", "name").ToString())
+			log.Infof("blrec 主播下播：%s", jsoniter.Get(content, "data", "user_info", "name").ToString())
 			var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 下播了", jsoniter.Get(content, "data", "user_info", "name").ToString()),
 				Content: fmt.Sprintf("- 主播：[%s](https://live.bilibili.com/%s)\n- 标题：%s\n- 分区：%s - %s",
@@ -93,17 +93,17 @@ func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		// RecordingStartedEvent 录制开始
 		case "RecordingStartedEvent":
-			log.Debugf("blrec 录制开始：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
+			log.Infof("blrec 录制开始：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 			break
 
 		// RecordingFinishedEvent 录制结束
 		case "RecordingFinishedEvent":
-			log.Debugf("blrec 录制结束：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
+			log.Infof("blrec 录制结束：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 			break
 
 		// RecordingCancelledEvent 录制取消
 		case "RecordingCancelledEvent":
-			log.Debugf("blrec 录制取消：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
+			log.Infof("blrec 录制取消：room_id %s", jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 			break
 
 		// VideoFileCreatedEvent 视频文件创建
@@ -113,7 +113,7 @@ func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		// VideoFileCompletedEvent 视频文件完成
 		case "VideoFileCompletedEvent":
-			log.Debugf("blrec 视频文件完成：%s", jsoniter.Get(content, "data", "path").ToString())
+			log.Infof("blrec 视频文件完成：%s", jsoniter.Get(content, "data", "path").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 视频文件完成", jsoniter.Get(content, "data", "room_id").ToString()),
 				Content: fmt.Sprintf("文件路径：%s",
@@ -129,7 +129,7 @@ func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		// DanmakuFileCompletedEvent 弹幕文件完成
 		case "DanmakuFileCompletedEvent":
-			log.Debugf("blrec 弹幕文件完成：%s", jsoniter.Get(content, "data", "path").ToString())
+			log.Infof("blrec 弹幕文件完成：%s", jsoniter.Get(content, "data", "path").ToString())
 			break
 
 		// RawDanmakuFileCreatedEvent 原始弹幕文件创建

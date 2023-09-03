@@ -53,7 +53,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 		switch eventType {
 		//录制开始 SessionStarted
 		case "SessionStarted":
-			log.Debugf("B站录播姬 录制开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
+			log.Infof("B站录播姬 录制开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			break
 
 		//文件打开 FileOpening
@@ -68,12 +68,12 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 
 		//录制结束 SessionEnded
 		case "SessionEnded":
-			log.Debugf("B站录播姬 录制结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
+			log.Infof("B站录播姬 录制结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			break
 
 		//直播开始 StreamStarted
 		case "StreamStarted":
-			log.Debugf("B站录播姬 直播开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
+			log.Infof("B站录播姬 直播开始 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "EventData", "Name").ToString()),
 				Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s\n- 开播时间：%s",
@@ -88,7 +88,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 
 		//直播结束 StreamEnded
 		case "StreamEnded":
-			log.Debugf("B站录播姬 直播结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
+			log.Infof("B站录播姬 直播结束 %s", jsoniter.Get(content, "EventData", "Name").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 直播结束", jsoniter.Get(content, "EventData", "Name").ToString()),
 				Content: fmt.Sprintf("- 主播：%s\n- 标题：%s\n- 分区：%s - %s",

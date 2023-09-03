@@ -55,7 +55,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		switch hookType {
 		//	0 StartLive 主播开播
 		case 0:
-			log.Debugf("DDTV 主播开播：%s", jsoniter.Get(content, "user_info", "name").ToString())
+			log.Infof("DDTV 主播开播：%s", jsoniter.Get(content, "user_info", "name").ToString())
 			var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 开播了", jsoniter.Get(content, "user_info", "name").ToString()),
 				Content: fmt.Sprintf("- 主播：%s\n\n- 标题：%s\n\n- 分区：%s - %s\n\n- 开播时间：%s",
@@ -71,27 +71,27 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		//	1 StopLive 主播下播
 		case 1:
 			// 主播正常下播
-			log.Debugf("DDTV 主播下播：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 主播下播：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			break
 
 		//	2 StartRec 开始录制
 		case 2:
-			log.Debugf("DDTV 开始录制：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 开始录制：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			break
 
 		//	3 RecComplete 录制结束
 		case 3:
-			log.Debugf("DDTV 录制结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 录制结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			break
 
 		//	4 CancelRec 录制被取消
 		case 4:
-			log.Debugf("DDTV 录制被取消：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 录制被取消：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			break
 
 		//	5 TranscodingComplete 完成转码
 		case 5:
-			log.Debugf("DDTV 完成转码：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 完成转码：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			/*var msg = messageSender.Message{
 				Title: fmt.Sprintf("%s 转码完成", jsoniter.Get(content, "room_Info", "uname").ToString()),
 				Content: fmt.Sprintf("主播：%s\n标题：%s\n转码完成时间：%s",
@@ -104,7 +104,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	6 SaveDanmuComplete 保存弹幕文件完成
 		case 6:
-			log.Debugf("DDTV 保存弹幕文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 保存弹幕文件完成：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			break
 
 		//	7 SaveSCComplete 保存SC文件完成
@@ -129,7 +129,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	11 DownloadEndMissionSuccess 下载任务成功结束
 		case 11:
-			log.Debugf("DDTV 下载任务成功结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Infof("DDTV 下载任务成功结束：%s", jsoniter.Get(content, "room_Info", "uname").ToString())
 			if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
 				// 主播被封号了
 				var msg = messageSender.Message{
@@ -163,7 +163,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	15 UpdateAvailable 有可用新版本
 		case 15:
-			log.Infof("DDTV 有可用新版本：%s", jsoniter.Get(content, "version").ToString())
+			log.Debugf("DDTV 有可用新版本：%s", jsoniter.Get(content, "version").ToString())
 			break
 
 		//	16 ShellExecutionComplete 执行Shell命令结束
