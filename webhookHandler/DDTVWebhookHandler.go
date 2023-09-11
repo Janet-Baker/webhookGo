@@ -95,11 +95,46 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 
 		//	1 StopLive 主播下播
 		case 1:
-			// 主播正常下播
+			// 输出日志
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV 主播下播：")
 			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
 			log.Info(logBuilder.String())
+			// 构造消息
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			// 封禁检测
+			isLocked := jsoniter.Get(content, "room_Info", "is_locked").ToBool()
+			if isLocked {
+				// 主播被封号了
+				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
+			} else {
+				// 主播正常下播
+				msgTitleBuilder.WriteString(" 下播了")
+			}
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+			if isLocked {
+				msgContentBuilder.WriteString("\n- 封禁到：")
+				msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+			}
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+			}
+			msg.Send()
 			break
 
 		//	2 StartRec 开始录制
@@ -193,7 +228,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
 			log.Info(logBuilder.String())
 			// 判断是否是封禁
-			if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
+			/*if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
 				// 主播被封号了
 				// 构造消息
 				// 构造消息标题
@@ -220,7 +255,7 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 					Content: msgContentBuilder.String(),
 				}
 				msg.Send()
-			}
+			}*/
 			break
 
 		//	12 SpaceIsInsufficientWarn 剩余空间不足
@@ -257,6 +292,63 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 				logBuilder.Write(content)
 				log.Debug(logBuilder.String())
 			}
+			break
+		//	以下是自编译版本的特有内容
+
+		//	17 WarnedByAdmin 被管理员警告
+		case 17:
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 被管理员警告：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
+			// 构造消息
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgTitleBuilder.WriteString(" 被管理员警告")
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgContentBuilder.WriteString("\n- 标题：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+			}
+			msg.Send()
+			break
+
+		//	18 LiveCutOff 直播被管理员切断
+		case 18:
+			var logBuilder strings.Builder
+			logBuilder.WriteString("DDTV 直播被管理员切断：")
+			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			log.Info(logBuilder.String())
+			// 构造消息
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgTitleBuilder.WriteString(" 直播被管理员切断")
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			msgContentBuilder.WriteString("\n- 标题：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+			}
+			msg.Send()
 			break
 
 		//	别的不关心，所以没写
