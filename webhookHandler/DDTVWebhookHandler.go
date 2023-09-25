@@ -334,6 +334,38 @@ func ddtvTaskRunner(content []byte) {
 		msg.Send()
 		break
 
+	//	19 RoomLocked 直播间被封禁
+	case 19:
+		var logBuilder strings.Builder
+		logBuilder.WriteString("DDTV 直播间被封禁：")
+		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		log.Info(logBuilder.String())
+		// 构造消息
+		// 构造消息标题
+		var msgTitleBuilder strings.Builder
+		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.WriteString(" 喜提直播间封禁！")
+		// 构造消息内容
+		var msgContentBuilder strings.Builder
+		msgContentBuilder.WriteString("- 主播：[")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.WriteString("](https://live.bilibili.com/")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(")\n- 标题：")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.WriteString("\n- 分区：")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.WriteString(" - ")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.WriteString("\n- 封禁到：")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+		var msg = messageSender.Message{
+			Title:   msgTitleBuilder.String(),
+			Content: msgContentBuilder.String(),
+		}
+		msg.Send()
+		break
+
 	//	别的不关心，所以没写
 	default:
 		var logBuilder strings.Builder
