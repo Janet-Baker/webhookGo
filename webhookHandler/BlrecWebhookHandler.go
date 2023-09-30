@@ -100,12 +100,10 @@ func blrecTaskRunner(content []byte) {
 
 	// RoomChangeEvent 直播间信息改变
 	case "RoomChangeEvent":
-		if log.GetLevel() == log.DebugLevel {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 直播间信息改变：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "room_id").ToString())
-			log.Debug(logBuilder.String())
-		}
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 直播间信息改变：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "room_id").ToString())
+		log.Info(logBuilder.String())
 		break
 
 	// RecordingStartedEvent 录制开始
@@ -134,13 +132,10 @@ func blrecTaskRunner(content []byte) {
 
 	// VideoFileCreatedEvent 视频文件创建
 	case "VideoFileCreatedEvent":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 视频文件创建：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-			log.Debug(logBuilder.String())
-		}
-		break
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 视频文件创建：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
+		log.Debug(logBuilder.String())
 
 	// VideoFileCompletedEvent 视频文件完成
 	case "VideoFileCompletedEvent":
@@ -164,12 +159,10 @@ func blrecTaskRunner(content []byte) {
 
 	// DanmakuFileCreatedEvent 弹幕文件创建
 	case "DanmakuFileCreatedEvent":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 弹幕文件创建：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-			log.Debug(logBuilder.String())
-		}
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 弹幕文件创建：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
+		log.Debug(logBuilder.String())
 		break
 
 	// DanmakuFileCompletedEvent 弹幕文件完成
@@ -182,32 +175,26 @@ func blrecTaskRunner(content []byte) {
 
 	// RawDanmakuFileCreatedEvent 原始弹幕文件创建
 	case "RawDanmakuFileCreatedEvent":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 原始弹幕文件创建：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-			log.Debug(logBuilder.String())
-		}
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 原始弹幕文件创建：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
+		log.Debug(logBuilder.String())
 		break
 
 	// RawDanmakuFileCompletedEvent 原始弹幕文件完成
 	case "RawDanmakuFileCompletedEvent":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 原始弹幕文件完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-			log.Debug(logBuilder.String())
-		}
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 原始弹幕文件完成：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
+		log.Debug(logBuilder.String())
 		break
 
 	// VideoPostprocessingCompletedEvent 视频后处理完成
 	case "VideoPostprocessingCompletedEvent":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 视频后处理完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-			log.Debug(logBuilder.String())
-		}
+		var logBuilder strings.Builder
+		logBuilder.WriteString("blrec 视频后处理完成：")
+		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
+		log.Debug(logBuilder.String())
 		break
 
 	// SpaceNoEnoughEvent 硬盘空间不足
