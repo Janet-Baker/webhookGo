@@ -106,11 +106,12 @@ func SendWeWorkMessage(message Message) {
 	}
 	errcode := jsoniter.Get(content, "errcode").ToString()
 	if errcode != "0" {
-		log.Errorf("发送企业微信应用消息失败：服务器返回错误：%s", jsoniter.Get(content, "errmsg").ToString())
+		log.Errorf("发送企业微信应用消息失败：服务器返回错误：%s", content)
 		return
 	}
 	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debugf("发送企业微信应用消息成功：%+v", message)
+		msgid := jsoniter.Get(content, "msgid").ToString()
+		log.Debugf("发送企业微信应用消息成功：消息id：%s；消息：%+v", msgid, message)
 	}
 	return
 }

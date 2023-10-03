@@ -143,18 +143,6 @@ func blrecTaskRunner(content []byte) {
 		logBuilder.WriteString("blrec 视频文件完成：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Info(logBuilder.String())
-		// 构造消息
-		/*var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "data", "room_id").ToString())
-		msgTitleBuilder.WriteString(" 视频文件完成")
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("文件路径：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-		}
-		msg.Send()*/
 		break
 
 	// DanmakuFileCreatedEvent 弹幕文件创建
@@ -213,6 +201,15 @@ func blrecTaskRunner(content []byte) {
 		logBuilder.WriteString("blrec 程序出现异常：")
 		logBuilder.WriteString(jsoniter.Get(content, "data").ToString())
 		log.Warn(logBuilder.String())
+		var msgContentBuilder strings.Builder
+		msgContentBuilder.WriteString("```json\n")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "data").ToString())
+		msgContentBuilder.WriteString("\n```")
+		var msg = messageSender.Message{
+			Title:   "blrec 程序出现异常",
+			Content: msgContentBuilder.String(),
+		}
+		msg.Send()
 		break
 
 	default:
