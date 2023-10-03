@@ -10,11 +10,15 @@ type Message struct {
 	Title string
 	// 消息内容
 	Content string
+	// 消息标识符
+	ID string
 }
 
 func (m *Message) Send() {
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debugf("发送消息：%+v", *m)
+	if log.IsLevelEnabled(log.TraceLevel) {
+		log.Tracef("%s 发送消息：%+v", m.ID, *m)
+	} else {
+		log.Debugf("%s 发送消息", m.ID)
 	}
 
 	// 并发发送消息

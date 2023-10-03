@@ -10,19 +10,17 @@ import (
 
 // bililiveRecoderTaskRunner 根据响应体内容，执行任务
 func bililiveRecoderTaskRunner(content []byte) {
-	log.Info("收到 BililiveRecoder webhook 请求")
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debug(string(content))
-	}
+	log.Trace(string(content))
+	webhookId := jsoniter.Get(content, "EventId").ToString()
+	log.Infof("%s 收到 BililiveRecoder webhook 请求", webhookId)
 
 	// 判断是否是重复的webhook请求
-	webhookId := jsoniter.Get(content, "EventId").ToString()
 	webhookMessageIdListLock.Lock()
 	if webhookMessageIdList.IsContain(webhookId) {
 		webhookMessageIdListLock.Unlock()
 		var logBuilder strings.Builder
-		logBuilder.WriteString("重复的 BililiveRecoder webhook 请求：")
 		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" 重复的 BililiveRecoder webhook 请求")
 		log.Warn(logBuilder.String())
 		return
 	} else {
@@ -36,7 +34,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	//录制开始 SessionStarted
 	case "SessionStarted":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("B站录播姬 录制开始 ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" B站录播姬 录制开始 ")
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -45,7 +44,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	case "FileOpening":
 		if log.IsLevelEnabled(log.DebugLevel) {
 			var logBuilder strings.Builder
-			logBuilder.WriteString("B站录播姬 文件打开 ")
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 文件打开 ")
 			logBuilder.WriteString(jsoniter.Get(content, "EventData", "RelativePath").ToString())
 			log.Debug(logBuilder.String())
 		}
@@ -55,7 +55,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	case "FileClosed":
 		if log.IsLevelEnabled(log.DebugLevel) {
 			var logBuilder strings.Builder
-			logBuilder.WriteString("B站录播姬 文件关闭 ")
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 文件关闭 ")
 			logBuilder.WriteString(jsoniter.Get(content, "EventData", "RelativePath").ToString())
 			log.Debug(logBuilder.String())
 		}
@@ -64,7 +65,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	//录制结束 SessionEnded
 	case "SessionEnded":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("B站录播姬 录制结束 ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" B站录播姬 录制结束 ")
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -72,7 +74,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	//直播开始 StreamStarted
 	case "StreamStarted":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("B站录播姬 直播开始 ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" B站录播姬 直播开始 ")
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 
@@ -94,6 +97,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		var msg = messageSender.Message{
 			Title:  msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
+			ID: webhookId,
 		}
 		msg.Send()*/
 		break
@@ -101,7 +105,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	//直播结束 StreamEnded
 	case "StreamEnded":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("B站录播姬 直播结束 ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" B站录播姬 直播结束 ")
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 
@@ -121,6 +126,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		var msg = messageSender.Message{
 			Title:  msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
+			ID: webhookId,
 		}
 		msg.Send()*/
 		break
@@ -128,7 +134,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	//	别的不关心，所以没写
 	default:
 		var logBuilder strings.Builder
-		logBuilder.WriteString("BililiveRecoder 未知的webhook请求类型：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" BililiveRecoder 未知的webhook请求类型：")
 		logBuilder.WriteString(eventType)
 		log.Warn(logBuilder.String())
 	}

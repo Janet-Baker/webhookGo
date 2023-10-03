@@ -12,19 +12,18 @@ import (
 
 // BlrecTaskRunner 根据响应体内容，执行任务
 func blrecTaskRunner(content []byte) {
-	log.Info("收到 blrec webhook 请求")
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debug(string(content))
-	}
+	log.Trace(string(content))
+
+	webhookId := jsoniter.Get(content, "id").ToString()
+	log.Infof("%s 收到 blrec webhook 请求", webhookId)
 
 	// 判断是否是重复的webhook请求
-	webhookId := jsoniter.Get(content, "id").ToString()
 	webhookMessageIdListLock.Lock()
 	if webhookMessageIdList.IsContain(webhookId) {
 		webhookMessageIdListLock.Unlock()
 		var logBuilder strings.Builder
-		logBuilder.WriteString("重复的webhook请求：")
 		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" 重复的webhook请求")
 		log.Warn(logBuilder.String())
 		return
 	} else {
@@ -39,7 +38,8 @@ func blrecTaskRunner(content []byte) {
 	case "LiveBeganEvent":
 		// 构造日志
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 主播开播：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 主播开播：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "name").ToString())
 		log.Info(logBuilder.String())
 
@@ -64,6 +64,7 @@ func blrecTaskRunner(content []byte) {
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
+			ID:      webhookId,
 		}
 		msg.Send()
 		break
@@ -71,7 +72,8 @@ func blrecTaskRunner(content []byte) {
 	// LiveEndedEvent 主播下播
 	case "LiveEndedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 主播下播：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 主播下播：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "name").ToString())
 		log.Info(logBuilder.String())
 
@@ -94,6 +96,7 @@ func blrecTaskRunner(content []byte) {
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
+			ID:      webhookId,
 		}
 		msg.Send()
 		break
@@ -101,7 +104,8 @@ func blrecTaskRunner(content []byte) {
 	// RoomChangeEvent 直播间信息改变
 	case "RoomChangeEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 直播间信息改变：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 直播间信息改变：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "room_id").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -109,7 +113,8 @@ func blrecTaskRunner(content []byte) {
 	// RecordingStartedEvent 录制开始
 	case "RecordingStartedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 录制开始：room_id ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 录制开始：room_id ")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -117,7 +122,8 @@ func blrecTaskRunner(content []byte) {
 	// RecordingFinishedEvent 录制结束
 	case "RecordingFinishedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 录制结束：room_id ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 录制结束：room_id ")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -125,7 +131,8 @@ func blrecTaskRunner(content []byte) {
 	// RecordingCancelledEvent 录制取消
 	case "RecordingCancelledEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 录制取消：room_id ")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 录制取消：room_id ")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "room_info", "room_id").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -133,14 +140,16 @@ func blrecTaskRunner(content []byte) {
 	// VideoFileCreatedEvent 视频文件创建
 	case "VideoFileCreatedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 视频文件创建：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 视频文件创建：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Debug(logBuilder.String())
 
 	// VideoFileCompletedEvent 视频文件完成
 	case "VideoFileCompletedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 视频文件完成：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 视频文件完成：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -148,7 +157,8 @@ func blrecTaskRunner(content []byte) {
 	// DanmakuFileCreatedEvent 弹幕文件创建
 	case "DanmakuFileCreatedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 弹幕文件创建：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 弹幕文件创建：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Debug(logBuilder.String())
 		break
@@ -156,7 +166,8 @@ func blrecTaskRunner(content []byte) {
 	// DanmakuFileCompletedEvent 弹幕文件完成
 	case "DanmakuFileCompletedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 弹幕文件完成：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 弹幕文件完成：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Info(logBuilder.String())
 		break
@@ -164,7 +175,8 @@ func blrecTaskRunner(content []byte) {
 	// RawDanmakuFileCreatedEvent 原始弹幕文件创建
 	case "RawDanmakuFileCreatedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 原始弹幕文件创建：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 原始弹幕文件创建：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Debug(logBuilder.String())
 		break
@@ -172,7 +184,8 @@ func blrecTaskRunner(content []byte) {
 	// RawDanmakuFileCompletedEvent 原始弹幕文件完成
 	case "RawDanmakuFileCompletedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 原始弹幕文件完成：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 原始弹幕文件完成：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Debug(logBuilder.String())
 		break
@@ -180,7 +193,8 @@ func blrecTaskRunner(content []byte) {
 	// VideoPostprocessingCompletedEvent 视频后处理完成
 	case "VideoPostprocessingCompletedEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 视频后处理完成：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 视频后处理完成：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		log.Debug(logBuilder.String())
 		break
@@ -188,7 +202,8 @@ func blrecTaskRunner(content []byte) {
 	// SpaceNoEnoughEvent 硬盘空间不足
 	case "SpaceNoEnoughEvent":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 硬盘空间不足：文件路径：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 硬盘空间不足：文件路径：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "path").ToString())
 		logBuilder.WriteString("；可用空间：")
 		logBuilder.WriteString(jsoniter.Get(content, "data", "usage", "free").ToString())
@@ -198,7 +213,8 @@ func blrecTaskRunner(content []byte) {
 	// Error 程序出现异常
 	case "Error":
 		var logBuilder strings.Builder
-		logBuilder.WriteString("blrec 程序出现异常：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" blrec 程序出现异常：")
 		logBuilder.WriteString(jsoniter.Get(content, "data").ToString())
 		log.Warn(logBuilder.String())
 		var msgContentBuilder strings.Builder
@@ -208,13 +224,15 @@ func blrecTaskRunner(content []byte) {
 		var msg = messageSender.Message{
 			Title:   "blrec 程序出现异常",
 			Content: msgContentBuilder.String(),
+			ID:      webhookId,
 		}
 		msg.Send()
 		break
 
 	default:
 		var logBuilder strings.Builder
-		logBuilder.WriteString("未知的 blrec webhook 请求类型：")
+		logBuilder.WriteString(webhookId)
+		logBuilder.WriteString(" 未知的 blrec webhook 请求类型：")
 		logBuilder.WriteString(hookType)
 		log.Warn(logBuilder.String())
 	}

@@ -22,15 +22,17 @@ func SendBarkMessage(message Message) {
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Errorf("发送Bark消息：关闭消息发送响应失败：%s", errCloser.Error())
+			log.Errorf("%s 发送Bark消息：关闭消息发送响应失败：%s", message.ID, errCloser.Error())
 		}
 	}(resp.Body)
 	if err != nil {
-		log.Errorf("发送Bark消息失败：%s", err.Error())
+		log.Errorf("%s 发送Bark消息失败：%s", message.ID, err.Error())
 		return
 	}
-	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debugf("发送Bark消息成功：%+v", message)
+	if log.IsLevelEnabled(log.TraceLevel) {
+		log.Tracef("%s 发送Bark消息响应：%+v", message.ID, resp)
+	} else {
+		log.Debugf("%s 发送Bark消息成功", message.ID)
 	}
 	return
 }
