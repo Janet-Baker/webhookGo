@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"webhookTemplate/bilibiliInfo"
+	"webhookTemplate/messageSender"
 )
 
 // bililiveRecoderTaskRunner 根据响应体内容，执行任务
@@ -79,7 +81,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 
-		/*var msgTitleBuilder strings.Builder
+		var msgTitleBuilder strings.Builder
 		msgTitleBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		msgTitleBuilder.WriteString(" 开播了")
 		var msgContentBuilder strings.Builder
@@ -91,15 +93,14 @@ func bililiveRecoderTaskRunner(content []byte) {
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameParent").ToString())
 		msgContentBuilder.WriteString(" - ")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameChild").ToString())
-		msgContentBuilder.WriteString("\n- 开播时间：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventTimestamp").ToString())
 
 		var msg = messageSender.Message{
-			Title:  msgTitleBuilder.String(),
+			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
-			ID: webhookId,
+			ID:      webhookId,
+			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToString(), webhookId),
 		}
-		msg.Send()*/
+		msg.Send()
 		break
 
 	//直播结束 StreamEnded
@@ -110,7 +111,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		log.Info(logBuilder.String())
 
-		/*var msgTitleBuilder strings.Builder
+		var msgTitleBuilder strings.Builder
 		msgTitleBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
 		msgTitleBuilder.WriteString(" 直播结束")
 		var msgContentBuilder strings.Builder
@@ -124,11 +125,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameChild").ToString())
 
 		var msg = messageSender.Message{
-			Title:  msgTitleBuilder.String(),
+			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
-			ID: webhookId,
+			ID:      webhookId,
+			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToString(), webhookId),
 		}
-		msg.Send()*/
+		msg.Send()
 		break
 
 	//	别的不关心，所以没写

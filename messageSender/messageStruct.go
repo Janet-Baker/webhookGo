@@ -10,8 +10,10 @@ type Message struct {
 	Title string
 	// 消息内容
 	Content string
-	// 消息标识符
+	// 消息标识符，Debug用
 	ID string
+	// IconURL，Bark等可以自定义头像的用
+	IconURL string
 }
 
 func (m *Message) Send() {

@@ -18,6 +18,10 @@ func SendBarkMessage(message Message) {
 	urlBuilder.WriteString(url.QueryEscape(message.Title))
 	urlBuilder.WriteString("/")
 	urlBuilder.WriteString(url.QueryEscape(message.Content))
+	if message.IconURL != "" {
+		urlBuilder.WriteString("?icon=")
+		urlBuilder.WriteString(url.QueryEscape(message.IconURL))
+	}
 	resp, err := http.Get(urlBuilder.String())
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()

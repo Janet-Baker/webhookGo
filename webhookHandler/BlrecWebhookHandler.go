@@ -15,7 +15,9 @@ func blrecTaskRunner(content []byte) {
 	log.Trace(string(content))
 
 	webhookId := jsoniter.Get(content, "id").ToString()
-	log.Infof("%s 收到 blrec webhook 请求", webhookId)
+	{
+		log.Infof("%s 收到 blrec webhook 请求", webhookId)
+	}
 
 	// 判断是否是重复的webhook请求
 	webhookMessageIdListLock.Lock()
@@ -65,6 +67,7 @@ func blrecTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "data", "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
@@ -97,6 +100,7 @@ func blrecTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "data", "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break

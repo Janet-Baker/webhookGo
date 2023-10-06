@@ -61,6 +61,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
@@ -107,6 +108,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID: webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()*/
 		break
@@ -242,6 +244,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
@@ -315,6 +318,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
@@ -347,6 +351,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
@@ -381,6 +386,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
+			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
 		}
 		msg.Send()
 		break
