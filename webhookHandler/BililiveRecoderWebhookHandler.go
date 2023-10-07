@@ -1,10 +1,11 @@
 package webhookHandler
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 	"webhookTemplate/bilibiliInfo"
@@ -14,7 +15,12 @@ import (
 // bililiveRecoderTaskRunner 根据响应体内容，执行任务
 func bililiveRecoderTaskRunner(content []byte) {
 	log.Trace(string(content))
-	webhookId := jsoniter.Get(content, "EventId").ToString()
+	var p fastjson.Parser
+	getter, errOfJsonParser := p.ParseBytes(content)
+	if errOfJsonParser != nil {
+		return
+	}
+	webhookId := string(getter.GetStringBytes("EventId"))
 	log.Info(webhookId, "收到 BililiveRecoder webhook 请求")
 
 	// 判断是否是重复的webhook请求
@@ -32,14 +38,14 @@ func bililiveRecoderTaskRunner(content []byte) {
 	}
 
 	// 判断事件类型
-	eventType := jsoniter.Get(content, "EventType").ToString()
+	eventType := string(getter.GetStringBytes("EventType"))
 	switch eventType {
 	//录制开始 SessionStarted
 	case "SessionStarted":
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" B站录播姬 录制开始 ")
-		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		log.Info(logBuilder.String())
 		break
 
@@ -49,7 +55,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" B站录播姬 文件打开 ")
-			logBuilder.WriteString(jsoniter.Get(content, "EventData", "RelativePath").ToString())
+			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -60,7 +66,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" B站录播姬 文件关闭 ")
-			logBuilder.WriteString(jsoniter.Get(content, "EventData", "RelativePath").ToString())
+			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -70,7 +76,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" B站录播姬 录制结束 ")
-		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		log.Info(logBuilder.String())
 		break
 
@@ -79,27 +85,27 @@ func bililiveRecoderTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" B站录播姬 直播开始 ")
-		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		log.Info(logBuilder.String())
 
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		msgTitleBuilder.WriteString(" 开播了")
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		msgContentBuilder.WriteString("\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameParent").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameChild").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
 
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToUint64(), webhookId),
+			IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "Face"), webhookId),
 		}
 		msg.Send()
 		break
@@ -109,12 +115,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" B站录播姬 直播结束 ")
-		logBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		log.Info(logBuilder.String())
 
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
-		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(jsoniter.Get(content, "EventData", "RoomId").ToUint64(), webhookId)
+		msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"), webhookId)
 		if isRoomLocked {
 			msgTitleBuilder.WriteString(" 直播间被封禁")
 		} else {
@@ -122,16 +128,16 @@ func bililiveRecoderTaskRunner(content []byte) {
 		}
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "RoomId").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
 		msgContentBuilder.WriteString(")")
 		msgContentBuilder.WriteString("\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameParent").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameChild").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
 		if isRoomLocked {
 			msgContentBuilder.WriteString("\n- 封禁到：")
 			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
@@ -141,7 +147,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToUint64(), webhookId),
+			IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "Face"), webhookId),
 		}
 		msg.Send()
 		break

@@ -3,8 +3,8 @@ package messageSender
 import (
 	"bytes"
 	"errors"
-	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
 	"strings"
@@ -44,15 +44,21 @@ func updateAccessToken() error {
 		return err
 	}
 	log.Tracef("更新企业微信应用的access_token：响应消息：%s", content)
-	errcode := jsoniter.Get(content, "errcode").ToString()
-	if "0" != errcode {
-		log.Errorf("更新企业微信应用的access_token失败：%s", jsoniter.Get(content, "errmsg").ToString())
-		return errors.New(jsoniter.Get(content, "errmsg").ToString())
+
+	var p fastjson.Parser
+	getter, errOfJsonParser := p.ParseBytes(content)
+	if errOfJsonParser != nil {
+		return errOfJsonParser
 	}
-	secrets.WeworkAccessToken = jsoniter.Get(content, "access_token").ToString()
-	secrets.WeworkAccessTokenExpireAt = time.Now().Unix() + jsoniter.Get(content, "expires_in").ToInt64()
-	log.Tracef("企业微信AccessToken：%s", secrets.WeworkAccessToken)
-	log.Debugf("有效期至：%v", secrets.WeworkAccessTokenExpireAt)
+	errcode := getter.GetInt("errcode")
+	if 0 != errcode {
+		log.Error("更新企业微信应用的access_token失败：", getter.GetStringBytes("errmsg"))
+		return errors.New(string(getter.GetStringBytes("errmsg")))
+	}
+	secrets.WeworkAccessToken = string(getter.GetStringBytes("access_token"))
+	secrets.WeworkAccessTokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
+	log.Trace("企业微信AccessToken：", secrets.WeworkAccessToken)
+	log.Debug("有效期至：", secrets.WeworkAccessTokenExpireAt)
 	return nil
 }
 
@@ -87,33 +93,38 @@ func SendWeWorkMessage(message Message) {
 	targetBuilder.WriteString(secrets.WeworkAccessToken)
 
 	// 发送请求
-	log.Tracef("%s 发送企业微信应用消息：请求地址：%s", message.ID, targetBuilder.String())
+	log.Trace(message.ID, "发送企业微信应用消息 请求地址", targetBuilder.String())
 	resp, err := http.Post(targetBuilder.String(), "application/json", &bodyBuffer)
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Errorf("%s 发送企业微信应用消息:关闭连接失败：%s", message.ID, errCloser.Error())
+			log.Error(message.ID, "发送企业微信应用消息 关闭连接失败", errCloser.Error())
 		}
 	}(resp.Body)
 	if err != nil {
-		log.Errorf("%s 发送企业微信应用消息：请求失败：%s", message.ID, err.Error())
+		log.Error(message.ID, "发送企业微信应用消息 请求失败", err.Error())
 		return
 	}
 	// 读取响应消息
 	content, errReader := io.ReadAll(resp.Body)
 	if errReader != nil {
-		log.Errorf("%s 发送企业微信应用消息：读取响应内容失败：%s", message.ID, errReader.Error())
+		log.Error(message.ID, "发送企业微信应用消息 读取响应内容失败", errReader.Error())
 		return
 	}
-	errcode := jsoniter.Get(content, "errcode").ToString()
-	if errcode != "0" {
-		log.Errorf("%s 发送企业微信应用消息：服务器返回错误：%s", message.ID, content)
+	var p fastjson.Parser
+	getter, errOfJsonParser := p.ParseBytes(content)
+	if errOfJsonParser != nil {
+		return
+	}
+	errcode := getter.GetInt("errcode")
+	if errcode != 0 {
+		log.Error(message.ID, "发送企业微信应用消息 服务器返回错误", content)
 		return
 	}
 	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Tracef("%s 发送企业微信应用消息成功：响应消息：%s", message.ID, content)
+		log.Trace(message.ID, "发送企业微信应用消息成功 响应消息", content)
 	} else {
-		log.Debugf("%s 发送企业微信应用消息成功：消息id：%s", message.ID, jsoniter.Get(content, "msgid").ToString())
+		log.Debug(message.ID, "发送企业微信应用消息成功 消息id", getter.GetStringBytes("msgid"))
 	}
 	return
 }

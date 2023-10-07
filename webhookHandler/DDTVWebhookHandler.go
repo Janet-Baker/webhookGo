@@ -1,10 +1,11 @@
 package webhookHandler
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 	"webhookTemplate/bilibiliInfo"
@@ -14,7 +15,12 @@ import (
 // ddtvTaskRunner 根据响应体内容，执行任务
 func ddtvTaskRunner(content []byte) {
 	log.Trace(string(content))
-	webhookId := jsoniter.Get(content, "id").ToString()
+	var p fastjson.Parser
+	getter, errOfJsonParser := p.ParseBytes(content)
+	if errOfJsonParser != nil {
+		return
+	}
+	webhookId := string(getter.GetStringBytes("id"))
 	log.Infof("%s 收到 DDTV webhook 请求", webhookId)
 
 	// 判断是否是重复的webhook请求
@@ -29,7 +35,7 @@ func ddtvTaskRunner(content []byte) {
 	}
 
 	// 判断事件类型
-	hookType := jsoniter.Get(content, "type").ToInt()
+	hookType := getter.GetInt("type")
 	switch hookType {
 	//	0 StartLive 主播开播
 	case 0:
@@ -37,33 +43,33 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 主播开播：")
-		logBuilder.WriteString(jsoniter.Get(content, "user_info", "name").ToString())
+		logBuilder.Write(getter.GetStringBytes("user_info", "name"))
 		log.Info(logBuilder.String())
 		// 构建消息
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "user_info", "name").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("user_info", "name"))
 		msgTitleBuilder.WriteString(" 开播了")
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		msgContentBuilder.WriteString("\n- 开播时间：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "hook_time").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("hook_time"))
 		// 发送消息
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()
 		break
@@ -74,14 +80,14 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 主播下播：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Info(logBuilder.String())
 		/*// 构造消息
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		// 封禁检测
-		isLocked := jsoniter.Get(content, "room_Info", "is_locked").ToBool()
+		isLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64(content, "room_Info", "room_id"), webhookId)
 		if isLocked {
 			// 主播被封号了
 			msgTitleBuilder.WriteString(" 喜提直播间封禁！")
@@ -92,25 +98,25 @@ func ddtvTaskRunner(content []byte) {
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		if isLocked {
 			msgContentBuilder.WriteString("\n- 封禁到：")
-			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 		}
 		// 发送消息
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID: webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()*/
 		break
@@ -120,7 +126,7 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 开始录制：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Info(logBuilder.String())
 		break
 
@@ -129,7 +135,7 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 录制结束：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Info(logBuilder.String())
 		break
 
@@ -138,7 +144,7 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 录制被取消：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Info(logBuilder.String())
 		break
 
@@ -148,7 +154,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 完成转码：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -159,7 +165,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 保存弹幕文件完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -170,7 +176,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 保存SC文件完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -181,7 +187,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 保存礼物文件完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -192,7 +198,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 保存大航海文件完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -203,7 +209,7 @@ func ddtvTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" DDTV 执行Shell命令完成：")
-			logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Debug(logBuilder.String())
 		}
 		break
@@ -214,27 +220,27 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 下载任务成功结束：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Info(logBuilder.String())
 
 		// 构造消息
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		// 判断是否是封禁
-		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(jsoniter.Get(content, "room_Info", "room_id").ToUint64(), webhookId)
+		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"), webhookId)
 		if isRoomLocked {
 			// 主播被封号了
 			msgTitleBuilder.WriteString(" 喜提直播间封禁！")
@@ -247,7 +253,7 @@ func ddtvTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()
 		break
@@ -276,7 +282,7 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 有可用新版本：")
-		logBuilder.WriteString(jsoniter.Get(content, "version").ToString())
+		logBuilder.Write(getter.GetStringBytes("version"))
 		log.Info(logBuilder.String())
 		break
 
@@ -298,30 +304,30 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 被管理员警告：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Warn(logBuilder.String())
 		// 构造消息
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgTitleBuilder.WriteString(" 被管理员警告")
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()
 		break
@@ -331,30 +337,30 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 直播被管理员切断：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Warn(logBuilder.String())
 		// 构造消息
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgTitleBuilder.WriteString(" 直播被管理员切断")
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()
 		break
@@ -364,32 +370,32 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 直播间被封禁：")
-		logBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		log.Warn(logBuilder.String())
 		// 构造消息
 		// 构造消息标题
 		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgTitleBuilder.WriteString(" 喜提直播间封禁！")
 		// 构造消息内容
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "room_id").ToString())
+		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
 		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "title").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
 		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_parent_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "area_v2_name").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 		msgContentBuilder.WriteString("\n- 封禁到：")
-		msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "lock_till"))
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: jsoniter.Get(content, "user_info", "face").ToString(),
+			IconURL: string(getter.GetStringBytes("user_info", "face")),
 		}
 		msg.Send()
 		break
@@ -399,7 +405,7 @@ func ddtvTaskRunner(content []byte) {
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" DDTV 未知的webhook请求类型：")
-		logBuilder.WriteString(jsoniter.Get(content, "type").ToString())
+		logBuilder.Write(getter.GetStringBytes("type"))
 		log.Warn(logBuilder.String())
 	}
 }
