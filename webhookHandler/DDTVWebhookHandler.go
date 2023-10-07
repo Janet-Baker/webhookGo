@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
+	"webhookTemplate/bilibiliInfo"
 	"webhookTemplate/messageSender"
 )
 
@@ -232,11 +234,12 @@ func ddtvTaskRunner(content []byte) {
 		var msgTitleBuilder strings.Builder
 		msgTitleBuilder.WriteString(jsoniter.Get(content, "room_Info", "uname").ToString())
 		// 判断是否是封禁
-		if jsoniter.Get(content, "room_Info", "is_locked").ToBool() {
+		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(jsoniter.Get(content, "room_Info", "room_id").ToUint64(), webhookId)
+		if isRoomLocked {
 			// 主播被封号了
 			msgTitleBuilder.WriteString(" 喜提直播间封禁！")
 			msgContentBuilder.WriteString("\n- 封禁到：")
-			msgContentBuilder.WriteString(jsoniter.Get(content, "room_Info", "lock_till").ToString())
+			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 		} else {
 			msgTitleBuilder.WriteString(" 录制完成")
 		}

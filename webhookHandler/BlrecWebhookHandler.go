@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"webhookTemplate/bilibiliInfo"
 	"webhookTemplate/messageSender"
 )
 
@@ -16,7 +17,7 @@ func blrecTaskRunner(content []byte) {
 
 	webhookId := jsoniter.Get(content, "id").ToString()
 	{
-		log.Infof("%s 收到 blrec webhook 请求", webhookId)
+		log.Info(webhookId, "收到 blrec webhook 请求")
 	}
 
 	// 判断是否是重复的webhook请求
@@ -83,7 +84,12 @@ func blrecTaskRunner(content []byte) {
 		// 构造消息
 		var msgTitleBuilder strings.Builder
 		msgTitleBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "name").ToString())
-		msgTitleBuilder.WriteString(" 下播了")
+		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(jsoniter.Get(content, "data", "room_info", "room_id").ToUint64(), webhookId)
+		if isRoomLocked {
+			msgTitleBuilder.WriteString(" 直播间被封禁")
+		} else {
+			msgTitleBuilder.WriteString(" 下播了")
+		}
 		var msgContentBuilder strings.Builder
 		msgContentBuilder.WriteString("- 主播：[")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "data", "user_info", "name").ToString())
@@ -95,6 +101,10 @@ func blrecTaskRunner(content []byte) {
 		msgContentBuilder.WriteString(jsoniter.Get(content, "data", "room_info", "parent_area_name").ToString())
 		msgContentBuilder.WriteString(" - ")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "data", "room_info", "area_name").ToString())
+		if isRoomLocked {
+			msgContentBuilder.WriteString("\n- 封禁到：")
+			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+		}
 
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),

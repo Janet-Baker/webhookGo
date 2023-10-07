@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 	"webhookTemplate/bilibiliInfo"
 	"webhookTemplate/messageSender"
 )
@@ -14,7 +15,7 @@ import (
 func bililiveRecoderTaskRunner(content []byte) {
 	log.Trace(string(content))
 	webhookId := jsoniter.Get(content, "EventId").ToString()
-	log.Infof("%s 收到 BililiveRecoder webhook 请求", webhookId)
+	log.Info(webhookId, "收到 BililiveRecoder webhook 请求")
 
 	// 判断是否是重复的webhook请求
 	webhookMessageIdListLock.Lock()
@@ -98,7 +99,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToString(), webhookId),
+			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToUint64(), webhookId),
 		}
 		msg.Send()
 		break
@@ -113,22 +114,34 @@ func bililiveRecoderTaskRunner(content []byte) {
 
 		var msgTitleBuilder strings.Builder
 		msgTitleBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
-		msgTitleBuilder.WriteString(" 直播结束")
+		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(jsoniter.Get(content, "EventData", "RoomId").ToUint64(), webhookId)
+		if isRoomLocked {
+			msgTitleBuilder.WriteString(" 直播间被封禁")
+		} else {
+			msgTitleBuilder.WriteString(" 直播结束")
+		}
 		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：")
+		msgContentBuilder.WriteString("- 主播：[")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Name").ToString())
+		msgContentBuilder.WriteString("](https://live.bilibili.com/")
+		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "RoomId").ToString())
+		msgContentBuilder.WriteString(")")
 		msgContentBuilder.WriteString("\n- 标题：")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "Title").ToString())
 		msgContentBuilder.WriteString("\n- 分区：")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameParent").ToString())
 		msgContentBuilder.WriteString(" - ")
 		msgContentBuilder.WriteString(jsoniter.Get(content, "EventData", "AreaNameChild").ToString())
+		if isRoomLocked {
+			msgContentBuilder.WriteString("\n- 封禁到：")
+			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+		}
 
 		var msg = messageSender.Message{
 			Title:   msgTitleBuilder.String(),
 			Content: msgContentBuilder.String(),
 			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToString(), webhookId),
+			IconURL: bilibiliInfo.GetAvatarByRoomID(jsoniter.Get(content, "EventData", "Face").ToUint64(), webhookId),
 		}
 		msg.Send()
 		break
@@ -158,7 +171,7 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 	// 读取请求内容
 	content, err := io.ReadAll(request.Body)
 	if err != nil {
-		log.Errorf("读取 BililiveRecoder webhook 请求失败：%s", err.Error())
+		log.Error("读取 BililiveRecoder webhook 请求失败：", err.Error())
 		return
 	}
 	go bililiveRecoderTaskRunner(content)
