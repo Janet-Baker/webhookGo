@@ -33,6 +33,7 @@ type WeworkApp struct {
 	WeworkAccessTokenExpireAt int64
 }
 
+// init 初始化，导入包时会自动调用，无需额外调用。
 func init() {
 	flag.StringVar(&SecretFile, "s", "secrets.yml", "secret file")
 	flag.Parse()
@@ -47,8 +48,9 @@ func init() {
 	}
 }
 
+// writeDefaultSecrets 没有读取到配置文件时，新建一个。
 func writeDefaultSecrets() {
-	var defaultSecrets = `Bark:
+	var defaultSecrets = []byte(`Bark:
   - url: "https://api.day.app/"
     secrets: ""
 #    需要多个服务器可多复制几遍
@@ -65,8 +67,8 @@ WeWorkApp:
 #    agentId: "1000002"
 #  - corpId: "ww123456789a01b2c3"
 #    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
-#    agentId: "1000002"`
-	err := os.WriteFile(SecretFile, []byte(defaultSecrets), 0o644)
+#    agentId: "1000002"`)
+	err := os.WriteFile(SecretFile, defaultSecrets, 0o644)
 	if err != nil {
 		log.Fatal("写入默认secrets文件失败!", err)
 	} else {

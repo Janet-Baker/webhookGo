@@ -10,7 +10,7 @@ import (
 func init() {
 	// 防止因为选择导致的进程挂起
 	_ = terminal.DisableQuickEdit()
-	// 设置日志
+	// 设置控制台显示
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:   true,
 		FullTimestamp: true,
