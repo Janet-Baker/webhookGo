@@ -62,20 +62,21 @@ func updateAccessToken(app *secrets.WeworkApp) error {
 
 func SendWeWorkAppMessage(message Message) {
 	length := len(secrets.Secrets.WeworkApps)
-	wg := sync.WaitGroup{}
-	for i := 0; i < length; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			sendWeWorkAppMessage(&secrets.Secrets.WeworkApps[i], message)
-		}()
+	if length > 0 {
+		wg := sync.WaitGroup{}
+		for i := 0; i < length; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				sendWeWorkAppMessage(&secrets.Secrets.WeworkApps[i], message)
+			}()
+		}
+		wg.Wait()
 	}
-	wg.Wait()
 }
 
 func sendWeWorkAppMessage(app *secrets.WeworkApp, message Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
-		log.Warn("企业微信应用配置不完整，跳过企业微信应用消息发送")
 		return
 	}
 	// 检查token是否过期

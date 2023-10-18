@@ -5,8 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"
-	"regexp"
-	"strings"
 	"sync"
 )
 
@@ -40,29 +38,13 @@ func init() {
 	flag.Parse()
 	file, err := os.ReadFile(SecretFile)
 	if err == nil {
-		err = yaml.NewDecoder(strings.NewReader(expand(string(file), os.Getenv))).Decode(Secrets)
+		err = yaml.Unmarshal(file, Secrets)
 		if err != nil {
 			log.Fatal("配置文件不合法!", err)
 		}
 	} else {
 		writeDefaultSecrets()
 	}
-}
-
-// expand 使用正则进行环境变量展开
-// os.ExpandEnv 字符 $ 无法逃逸
-// https://github.com/golang/go/issues/43482
-func expand(s string, mapping func(string) string) string {
-	r := regexp.MustCompile(`\${([a-zA-Z_]+[a-zA-Z0-9_:/.]*)}`)
-	return r.ReplaceAllStringFunc(s, func(s string) string {
-		s = strings.Trim(s, "${}")
-		before, after, ok := strings.Cut(s, ":")
-		m := mapping(before)
-		if ok && m == "" {
-			return after
-		}
-		return m
-	})
 }
 
 func writeDefaultSecrets() {
@@ -84,6 +66,11 @@ WeWorkApp:
 #  - corpId: "ww123456789a01b2c3"
 #    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
 #    agentId: "1000002"`
-	_ = os.WriteFile(SecretFile, []byte(defaultSecrets), 0o644)
+	err := os.WriteFile(SecretFile, []byte(defaultSecrets), 0o644)
+	if err != nil {
+		log.Fatal("写入默认secrets文件失败!", err)
+	} else {
+		log.Info("写入默认secrets文件成功，请修改配置文件后重启程序。")
+	}
 	os.Exit(0)
 }
