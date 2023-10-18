@@ -34,7 +34,7 @@ func (m *Message) Send() {
 	// 发送企业微信应用消息
 	go func() {
 		defer wg.Done() //程序退出的时候执行
-		SendWeWorkMessage(*m)
+		SendWeWorkAppMessage(*m)
 	}()
 	// 等待协程结束
 	wg.Wait()

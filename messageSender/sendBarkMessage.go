@@ -11,9 +11,20 @@ import (
 
 func SendBarkMessage(message Message) {
 	// resp, err := http.Get("https://api.day.app/" + secrets.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content))
+	length := len(secrets.Secrets.Barks)
+	for i := 0; i < length; i++ {
+		go sendBarkMessage(secrets.Secrets.Barks[i], message)
+	}
+}
+
+func sendBarkMessage(barkServer secrets.BarkServer, message Message) {
+	if barkServer.BarkSecrets == "" {
+		log.Warn(barkServer.ServerUrl, "的BarkSecrets为空，跳过Bark消息发送")
+		return
+	}
 	var urlBuilder strings.Builder
-	urlBuilder.WriteString("https://api.day.app/")
-	urlBuilder.WriteString(secrets.BarkSecrets)
+	urlBuilder.WriteString(barkServer.ServerUrl)
+	urlBuilder.WriteString(barkServer.BarkSecrets)
 	urlBuilder.WriteString("/")
 	urlBuilder.WriteString(url.QueryEscape(message.Title))
 	urlBuilder.WriteString("/")

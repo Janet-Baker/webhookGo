@@ -13,18 +13,16 @@ import (
 	"webhookTemplate/secrets"
 )
 
-var updateAccessTokenLock sync.Mutex
-
-func updateAccessToken() error {
+func updateAccessToken(app *secrets.WeworkApp) error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
 	var urlBuilder strings.Builder
 	urlBuilder.Grow(363)
 	urlBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=")
-	urlBuilder.WriteString(secrets.WeworkCorpId)
+	urlBuilder.WriteString(app.CorpId)
 	urlBuilder.WriteString("&corpsecret=")
-	urlBuilder.WriteString(secrets.AppSecret)
+	urlBuilder.WriteString(app.AppSecret)
 	log.Tracef("更新企业微信应用的access_token：请求地址：%s", urlBuilder.String())
 	// 发送请求
 	resp, err := http.Get(urlBuilder.String())
@@ -55,22 +53,39 @@ func updateAccessToken() error {
 		log.Error("更新企业微信应用的access_token失败：", getter.GetStringBytes("errmsg"))
 		return errors.New(string(getter.GetStringBytes("errmsg")))
 	}
-	secrets.WeworkAccessToken = string(getter.GetStringBytes("access_token"))
-	secrets.WeworkAccessTokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
-	log.Trace("企业微信AccessToken：", secrets.WeworkAccessToken)
-	log.Debug("有效期至：", secrets.WeworkAccessTokenExpireAt)
+	app.WeworkAccessToken = string(getter.GetStringBytes("access_token"))
+	app.WeworkAccessTokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
+	log.Trace("企业微信AccessToken：", app.WeworkAccessToken)
+	log.Debug("有效期至：", app.WeworkAccessTokenExpireAt)
 	return nil
 }
 
-func SendWeWorkMessage(message Message) {
+func SendWeWorkAppMessage(message Message) {
+	length := len(secrets.Secrets.WeworkApps)
+	wg := sync.WaitGroup{}
+	for i := 0; i < length; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sendWeWorkAppMessage(&secrets.Secrets.WeworkApps[i], message)
+		}()
+	}
+	wg.Wait()
+}
+
+func sendWeWorkAppMessage(app *secrets.WeworkApp, message Message) {
+	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
+		log.Warn("企业微信应用配置不完整，跳过企业微信应用消息发送")
+		return
+	}
 	// 检查token是否过期
-	if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
+	if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
 		// 更新之前需要加锁，防止有线程正在更新
-		updateAccessTokenLock.Lock()
-		defer updateAccessTokenLock.Unlock()
+		app.Lock()
+		defer app.Unlock()
 		// 再次判断过期时间，防止被其他线程更新过了
-		if time.Now().Unix() > secrets.WeworkAccessTokenExpireAt {
-			err := updateAccessToken()
+		if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
+			err := updateAccessToken(app)
 			if err != nil {
 				return
 			}
@@ -79,7 +94,7 @@ func SendWeWorkMessage(message Message) {
 	// 制作要发送的 Markdown 消息
 	var bodyBuffer bytes.Buffer
 	bodyBuffer.WriteString("{\"touser\":\"@all\",\"msgtype\":\"markdown\",\"agentid\":\"")
-	bodyBuffer.WriteString(secrets.AgentID)
+	bodyBuffer.WriteString(app.AgentID)
 	bodyBuffer.WriteString("\",\"markdown\":{\"content\":\"# ")
 	bodyBuffer.WriteString(message.Title)
 	bodyBuffer.WriteString("\n")
@@ -90,7 +105,7 @@ func SendWeWorkMessage(message Message) {
 	var targetBuilder strings.Builder
 	targetBuilder.Grow(318)
 	targetBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=")
-	targetBuilder.WriteString(secrets.WeworkAccessToken)
+	targetBuilder.WriteString(app.WeworkAccessToken)
 
 	// 发送请求
 	log.Trace(message.ID, "发送企业微信应用消息 请求地址", targetBuilder.String())
