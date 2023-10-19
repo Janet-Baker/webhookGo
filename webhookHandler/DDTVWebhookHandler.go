@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"webhookTemplate/bilibiliInfo"
-	"webhookTemplate/messageSender"
+	"webhookGo/bilibiliInfo"
+	"webhookGo/messageSender"
 )
 
 // ddtvTaskRunner 根据响应体内容，执行任务

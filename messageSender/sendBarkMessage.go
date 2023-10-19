@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"webhookTemplate/secrets"
+	"webhookGo/secrets"
 )
 
 func SendBarkMessage(message Message) {
@@ -17,10 +17,10 @@ func SendBarkMessage(message Message) {
 		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
 			wg.Add(1)
-			go func() {
+			go func(i int) {
 				defer wg.Done()
 				sendBarkMessage(secrets.Secrets.Barks[i], message)
-			}()
+			}(i)
 		}
 	}
 }

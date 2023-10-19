@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"webhookTemplate/secrets"
+	"webhookGo/secrets"
 )
 
 func updateAccessToken(app *secrets.WeworkApp) error {
@@ -66,10 +66,10 @@ func SendWeWorkAppMessage(message Message) {
 		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
 			wg.Add(1)
-			go func() {
+			go func(i int) {
 				defer wg.Done()
 				sendWeWorkAppMessage(&secrets.Secrets.WeworkApps[i], message)
-			}()
+			}(i)
 		}
 		wg.Wait()
 	}

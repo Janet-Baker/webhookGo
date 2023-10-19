@@ -3,8 +3,8 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"webhookTemplate/terminal"
-	"webhookTemplate/webhookHandler"
+	"webhookGo/terminal"
+	"webhookGo/webhookHandler"
 )
 
 func init() {

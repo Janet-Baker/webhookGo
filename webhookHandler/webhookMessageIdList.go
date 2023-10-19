@@ -2,7 +2,7 @@ package webhookHandler
 
 import (
 	"sync"
-	"webhookTemplate/CustomizedQueue"
+	"webhookGo/CustomizedQueue"
 )
 
 // webhookMessageIdList 用于存储已经处理过的webhook请求的id

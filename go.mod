@@ -1,4 +1,4 @@
-module webhookTemplate
+module webhookGo
 
 go 1.20
 
