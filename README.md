@@ -1,10 +1,12 @@
-# 一个(最初计划)自用的Webhook处理程序
+# 一个（最初计划自用的）Webhook处理程序
 
-注意：我的开发环境为 Windows 10 x64，尽管理论上是跨平台的，但是不同平台的表现终究不一样。所以不保证到你的设备上能正常跑。
+目的：接受来自直播录制程序的Webhook请求，然后给用户设置的目标（现在是Bark和企业微信）推送消息。
+
+注意：我的开发环境为 Windows 10 x64，尽管Golang理论上是跨平台的，但是不同平台的表现终究不一样。所以不保证到你的设备上能正常跑。
 
 ## 用法：
-1. 在[release页面](https://github.com/Janet-Baker/webhookTemplate/releases)，
-找当前系统环境可以运行的软件包(大多数都是 webhookTemplate_windows_amd64.exe
+1. 在[release页面](https://github.com/Janet-Baker/webhookGo/releases)，
+找当前系统环境可以运行的软件包(大多数都是 webhookGo_windows_amd64.exe
 ~~_用其它系统的相信你已有自理能力了所以自己选包吧_~~)，下载下来。
 2. 运行一次，如果看到文件夹里多出来一个`secrets.yml`，就说明下载的软件包是可以用的。
 3. 在`secrets.yml`里，根据你的推送需求
@@ -19,7 +21,7 @@
 5. 如果想要自己定制，其实不难……
 
 ## 自定义读取配置文件的位置
-> webhook.exe -s secrets.yml
+> webhookGo.exe -s secrets.yml
 
 ## 示例配置文件
 ### 只需要Bark推送的
