@@ -171,6 +171,10 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 			return
 		}
 	}(request.Body)
+	if request.Method != "POST" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	// return 200 at first
 	w.WriteHeader(http.StatusOK)
 

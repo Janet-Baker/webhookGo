@@ -13,11 +13,11 @@
 (目前写了 企业微信应用消息 和 iOS Bark这两种)，填写相关的信息。
 4. 在相关的可以发送Webhook的应用程序中，填写Webhook地址。
 建议配置完成之后再进行这一步。
-   - 在[mikufans录播姬](rec.danmuji.org/)
-   的设置页面 Webhook V2 中，填写`http://127.0.0.1:14000/bililiverecoder`
-   - 在[blrec](https://github.com/acgnhiki/blrec/)的设置页面最下方Webhooks中，添加服务器
+   - 在 [mikufans录播姬](https://rec.danmuji.org/)
+   的设置页面 **Webhook V2** 中，填写`http://127.0.0.1:14000/bililiverecoder`
+   - 在 [blrec](https://github.com/acgnhiki/blrec/) 网页控制台的设置页面最下方**Webhooks**中，添加服务器
    `http://127.0.0.1:14000/blrec`
-   - 在[DDTV](https://ddtv.pro/)的配置文件`DDTV_Config.ini`中，找到`WebHookUrl=`，填写`http://127.0.0.1:14000/ddtv`
+   - 在 [DDTV](https://ddtv.pro/) 的配置文件`DDTV_Config.ini`中，找到`WebHookUrl=`，填写`http://127.0.0.1:14000/ddtv`
 5. 如果想要自己定制，其实不难……
 
 ## 自定义读取配置文件的位置
