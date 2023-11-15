@@ -139,8 +139,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 		msgContentBuilder.WriteString(" - ")
 		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
 		if isRoomLocked {
-			msgContentBuilder.WriteString("\n- 封禁到：")
-			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+			if lockTill > 0 {
+				msgContentBuilder.WriteString("\n- 封禁到：")
+				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+			}
 		}
 
 		var msg = messageSender.Message{

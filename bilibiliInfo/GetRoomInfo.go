@@ -200,33 +200,34 @@ func IsRoomLocked(roomId uint64, webhookId string) (bool, int64) {
 	time.Sleep(1 * time.Second)
 	// 构造请求
 	var urlBuilder strings.Builder
+	// 不要用 https://api.live.bilibili.com/room/v1/Room/getBannedInfo?roomid= 因为获取不到数据了
 	urlBuilder.WriteString("https://api.live.bilibili.com/room/v1/Room/room_init?id=")
 	urlBuilder.WriteString(strconv.FormatUint(roomId, 10))
 	req, errRequest := http.NewRequest("GET", urlBuilder.String(), nil)
 	if errRequest != nil {
-		log.Error(webhookId, "请求用户封禁状态 构造请求失败", errRequest.Error())
+		log.Error(webhookId, "请求直播间封禁状态 构造请求失败", errRequest.Error())
 		return false, 0
 	}
 	reqHeaderSetter(&req.Header)
 	// 发起请求
 	resp, err := BiliBiliClient.Do(req)
 	if err != nil {
-		log.Error(webhookId, "请求用户封禁状态 请求失败", err.Error())
+		log.Error(webhookId, "请求直播间封禁状态 请求失败", err.Error())
 		return false, 0
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Error(webhookId, "请求用户封禁状态 关闭消息发送响应失败", errCloser.Error())
+			log.Error(webhookId, "请求直播间封禁状态 关闭消息发送响应失败", errCloser.Error())
 		}
 	}(resp.Body)
 	// 读取请求
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(webhookId, "请求用户封禁状态 读取响应消息失败", err.Error())
+		log.Error(webhookId, "请求直播间封禁状态 读取响应消息失败", err.Error())
 		return false, 0
 	}
-	log.Trace(webhookId, "请求用户封禁状态 响应", content)
+	log.Trace(webhookId, "请求直播间封禁状态 响应", content)
 
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -238,7 +239,7 @@ func IsRoomLocked(roomId uint64, webhookId string) (bool, int64) {
 	code := getter.GetInt("code")
 	//code := roomInfo.Code
 	if 0 != code {
-		log.Error(webhookId, "请求用户封禁状态 失败", getter.GetStringBytes("message"))
+		log.Error(webhookId, "请求直播间封禁状态 失败", getter.GetStringBytes("message"))
 		return false, 0
 	}
 
