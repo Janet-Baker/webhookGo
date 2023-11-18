@@ -81,16 +81,17 @@ func sendWeWorkAppMessage(app *secrets.WeworkApp, message Message) {
 	}
 	// 检查token是否过期
 	if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
-		// 更新之前需要加锁，防止有线程正在更新
-		app.Lock()
-		defer app.Unlock()
-		// 再次判断过期时间，防止被其他线程更新过了
-		if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
-			err := updateAccessToken(app)
-			if err != nil {
-				return
+		func() { // 更新之前需要加锁，防止有线程正在更新
+			app.Lock()
+			defer app.Unlock()
+			// 再次判断过期时间，防止被其他线程更新过了
+			if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
+				err := updateAccessToken(app)
+				if err != nil {
+					return
+				}
 			}
-		}
+		}()
 	}
 	// 制作要发送的 Markdown 消息
 	var bodyBuffer bytes.Buffer
