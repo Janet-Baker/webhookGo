@@ -5,42 +5,45 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
-	"webhookGo/secrets"
 )
+
+// BarkServer Bark消息推送(iOS)
+type BarkServer struct {
+	ServerUrl   string `yaml:"url"`
+	BarkSecrets string `yaml:"secrets"`
+}
+
+var barkServers []BarkServer
+
+func RegisterBarkServer(barkServer BarkServer) {
+	barkServers = append(barkServers, barkServer)
+}
 
 func SendBarkMessage(message Message) {
 	// resp, err := http.Get("https://api.day.app/" + secrets.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content))
-	length := len(secrets.Secrets.Barks)
+	length := len(barkServers)
 	if length > 0 {
 		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				sendBarkMessage(secrets.Secrets.Barks[i], message)
+				sendBarkMessage(barkServers[i], message)
 			}(i)
 		}
 	}
 }
 
-func sendBarkMessage(barkServer secrets.BarkServer, message Message) {
+func sendBarkMessage(barkServer BarkServer, message Message) {
 	if barkServer.BarkSecrets == "" {
 		return
 	}
-	var urlBuilder strings.Builder
-	urlBuilder.WriteString(barkServer.ServerUrl)
-	urlBuilder.WriteString(barkServer.BarkSecrets)
-	urlBuilder.WriteString("/")
-	urlBuilder.WriteString(url.QueryEscape(message.Title))
-	urlBuilder.WriteString("/")
-	urlBuilder.WriteString(url.QueryEscape(message.Content))
+	sendUrl := barkServer.ServerUrl + barkServer.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content)
 	if message.IconURL != "" {
-		urlBuilder.WriteString("?icon=")
-		urlBuilder.WriteString(url.QueryEscape(message.IconURL))
+		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.IconURL)
 	}
-	resp, err := http.Get(urlBuilder.String())
+	resp, err := http.Get(sendUrl)
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {

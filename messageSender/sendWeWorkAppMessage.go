@@ -7,25 +7,38 @@ import (
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
-	"webhookGo/secrets"
 )
 
-func updateAccessToken(app *secrets.WeworkApp) error {
+type weworkAppToken struct {
+	sync.Mutex
+	accessToken   string
+	tokenExpireAt int64
+}
+
+type WeworkAppTarget struct {
+	CorpId    string `yaml:"corpId"`
+	AppSecret string `yaml:"appSecret"`
+	AgentID   string `yaml:"agentId"`
+	token     *weworkAppToken
+}
+
+var weworkAppTargets []WeworkAppTarget
+
+func RegisterWeworkAppTarget(target WeworkAppTarget) {
+	target.token = new(weworkAppToken)
+	weworkAppTargets = append(weworkAppTargets, target)
+}
+
+func updateAccessToken(app WeworkAppTarget) error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
-	var urlBuilder strings.Builder
-	urlBuilder.Grow(363)
-	urlBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=")
-	urlBuilder.WriteString(app.CorpId)
-	urlBuilder.WriteString("&corpsecret=")
-	urlBuilder.WriteString(app.AppSecret)
-	log.Tracef("更新企业微信应用的access_token：请求地址：%s", urlBuilder.String())
+	url := "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + app.CorpId + "&corpsecret=" + app.AppSecret
+	log.Tracef("更新企业微信应用的access_token：请求地址：%s", url)
 	// 发送请求
-	resp, err := http.Get(urlBuilder.String())
+	resp, err := http.Get(url)
 	if err != nil {
 		log.Errorf("更新企业微信应用的access_token：请求发送失败：%s", err.Error())
 		return err
@@ -53,39 +66,39 @@ func updateAccessToken(app *secrets.WeworkApp) error {
 		log.Error("更新企业微信应用的access_token失败：", getter.GetStringBytes("errmsg"))
 		return errors.New(string(getter.GetStringBytes("errmsg")))
 	}
-	app.WeworkAccessToken = string(getter.GetStringBytes("access_token"))
-	app.WeworkAccessTokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
-	log.Trace("企业微信AccessToken：", app.WeworkAccessToken)
-	log.Debug("有效期至：", app.WeworkAccessTokenExpireAt)
+	app.token.accessToken = string(getter.GetStringBytes("access_token"))
+	app.token.tokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
+	log.Trace("企业微信AccessToken：", app.token.accessToken)
+	log.Debug("企业微信AccessToken有效期至：", app.token.tokenExpireAt)
 	return nil
 }
 
 func SendWeWorkAppMessage(message Message) {
-	length := len(secrets.Secrets.WeworkApps)
+	length := len(weworkAppTargets)
 	if length > 0 {
 		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				sendWeWorkAppMessage(&secrets.Secrets.WeworkApps[i], message)
+				sendWeWorkAppMessage(weworkAppTargets[i], message)
 			}(i)
 		}
 		wg.Wait()
 	}
 }
 
-func sendWeWorkAppMessage(app *secrets.WeworkApp, message Message) {
+func sendWeWorkAppMessage(app WeworkAppTarget, message Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
 		return
 	}
 	// 检查token是否过期
-	if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
+	if time.Now().Unix() > app.token.tokenExpireAt {
 		func() { // 更新之前需要加锁，防止有线程正在更新
-			app.Lock()
-			defer app.Unlock()
+			app.token.Lock()
+			defer app.token.Unlock()
 			// 再次判断过期时间，防止被其他线程更新过了
-			if time.Now().Unix() > app.WeworkAccessTokenExpireAt {
+			if time.Now().Unix() > app.token.tokenExpireAt {
 				err := updateAccessToken(app)
 				if err != nil {
 					return
@@ -104,14 +117,11 @@ func sendWeWorkAppMessage(app *secrets.WeworkApp, message Message) {
 	bodyBuffer.WriteString("\"},\"enable_duplicate_check\":1,\"duplicate_check_interval\":3600}")
 
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
-	var targetBuilder strings.Builder
-	targetBuilder.Grow(318)
-	targetBuilder.WriteString("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=")
-	targetBuilder.WriteString(app.WeworkAccessToken)
+	targetUrl := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + app.token.accessToken
 
 	// 发送请求
-	log.Trace(message.ID, "发送企业微信应用消息 请求地址", targetBuilder.String())
-	resp, err := http.Post(targetBuilder.String(), "application/json", &bodyBuffer)
+	log.Trace(message.ID, "发送企业微信应用消息 请求地址", targetUrl)
+	resp, err := http.Post(targetUrl, "application/json", &bodyBuffer)
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {

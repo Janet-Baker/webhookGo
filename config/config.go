@@ -1,55 +1,47 @@
-package secrets
+package config
 
 import (
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"
-	"sync"
+	"webhookGo/messageSender"
 )
 
-var SecretFile string
-
-var Secrets = &TypeSecrets{}
-
-type TypeSecrets struct {
-	Barks      []BarkServer `yaml:"Bark"`
-	WeworkApps []WeworkApp  `yaml:"WeWorkApp"`
-}
-
-// BarkServer Bark消息推送(iOS)
-type BarkServer struct {
-	ServerUrl   string `yaml:"url"`
-	BarkSecrets string `yaml:"secrets"`
-}
-
-// WeworkApp 企业微信应用消息
-type WeworkApp struct {
-	sync.Mutex
-	CorpId                    string `yaml:"corpId"`
-	AppSecret                 string `yaml:"appSecret"`
-	AgentID                   string `yaml:"agentId"`
-	WeworkAccessToken         string
-	WeworkAccessTokenExpireAt int64
+type SecretsLoader struct {
+	Barks      []messageSender.BarkServer      `yaml:"Bark"`
+	WeworkApps []messageSender.WeworkAppTarget `yaml:"WeWorkApp"`
 }
 
 // init 初始化，导入包时会自动调用，无需额外调用。
 func init() {
+	var secrets SecretsLoader
+	var SecretFile string
 	flag.StringVar(&SecretFile, "s", "secrets.yml", "secret file")
 	flag.Parse()
 	file, err := os.ReadFile(SecretFile)
 	if err == nil {
-		err = yaml.Unmarshal(file, Secrets)
+		err = yaml.Unmarshal(file, secrets)
 		if err != nil {
 			log.Fatal("配置文件不合法!", err)
 		}
 	} else {
-		writeDefaultSecrets()
+		writeDefaultSecrets(SecretFile)
+	}
+	if len(secrets.Barks) > 0 {
+		for _, bark := range secrets.Barks {
+			messageSender.RegisterBarkServer(bark)
+		}
+	}
+	if len(secrets.WeworkApps) > 0 {
+		for i := 0; i < len(secrets.WeworkApps); i++ {
+			messageSender.RegisterWeworkAppTarget(secrets.WeworkApps[i])
+		}
 	}
 }
 
 // writeDefaultSecrets 没有读取到配置文件时，新建一个。
-func writeDefaultSecrets() {
+func writeDefaultSecrets(secretFile string) {
 	var defaultSecrets = []byte(`Bark:
   - url: "https://api.day.app/"
     secrets: ""
@@ -68,7 +60,7 @@ WeWorkApp:
 #  - corpId: "ww123456789a01b2c3"
 #    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
 #    agentId: "1000002"`)
-	err := os.WriteFile(SecretFile, defaultSecrets, 0o644)
+	err := os.WriteFile(secretFile, defaultSecrets, 0o644)
 	if err != nil {
 		log.Fatal("写入默认secrets文件失败!", err)
 	} else {

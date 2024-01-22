@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -72,10 +71,8 @@ func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
 	}
 	// 不存在，重新获取
 	// 构造请求
-	var urlBuilder strings.Builder
-	urlBuilder.WriteString("https://api.live.bilibili.com/room/v1/Room/room_init?id=")
-	urlBuilder.WriteString(strconv.FormatUint(roomId, 10))
-	req, errRequest := http.NewRequest("GET", urlBuilder.String(), nil)
+	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
+	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
 		log.Error(webhookId, "请求用户uid 构造请求失败", errRequest.Error())
 		return 0, errRequest
@@ -130,10 +127,8 @@ func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
 	}
 	// 不存在，重新获取
 	// 构造请求 "https://api.live.bilibili.com/live_user/v1/Master/info?uid="+uid
-	var urlBuilder strings.Builder
-	urlBuilder.WriteString("https://api.live.bilibili.com/live_user/v1/Master/info?uid=")
-	urlBuilder.WriteString(strconv.FormatUint(uid, 10))
-	req, errRequest := http.NewRequest("GET", urlBuilder.String(), nil)
+	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatUint(uid, 10)
+	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
 		log.Error(webhookId, "请求用户头像 构造请求失败：", errRequest.Error())
 		return "", errRequest
@@ -199,11 +194,9 @@ func IsRoomLocked(roomId uint64, webhookId string) (bool, int64) {
 	// 每次下播时更新
 	time.Sleep(1 * time.Second)
 	// 构造请求
-	var urlBuilder strings.Builder
 	// 不要用 https://api.live.bilibili.com/room/v1/Room/getBannedInfo?roomid= 因为获取不到数据了
-	urlBuilder.WriteString("https://api.live.bilibili.com/room/v1/Room/room_init?id=")
-	urlBuilder.WriteString(strconv.FormatUint(roomId, 10))
-	req, errRequest := http.NewRequest("GET", urlBuilder.String(), nil)
+	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
+	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
 		log.Error(webhookId, "请求直播间封禁状态 构造请求失败", errRequest.Error())
 		return false, 0
