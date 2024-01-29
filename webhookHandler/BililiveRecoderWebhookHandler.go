@@ -5,6 +5,7 @@ import (
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -24,143 +25,201 @@ func bililiveRecoderTaskRunner(content []byte) {
 	log.Info(webhookId, "收到 BililiveRecoder webhook 请求")
 
 	// 判断是否是重复的webhook请求
-	webhookMessageIdListLock.Lock()
-	if webhookMessageIdList.IsContain(webhookId) {
-		webhookMessageIdListLock.Unlock()
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" 重复的 BililiveRecoder webhook 请求")
-		log.Warn(logBuilder.String())
+	if registerId(webhookId) {
 		return
-	} else {
-		webhookMessageIdList.EnQueue(webhookId)
-		webhookMessageIdListLock.Unlock()
 	}
 
 	// 判断事件类型
 	eventType := string(getter.GetStringBytes("EventType"))
+	eventSettings, _ := bililiveRecoderSettings[eventType]
 	switch eventType {
 	//录制开始 SessionStarted
 	case "SessionStarted":
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" B站录播姬 录制开始 ")
-		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		log.Info(logBuilder.String())
-		break
-
-	//文件打开 FileOpening
-	case "FileOpening":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" B站录播姬 文件打开 ")
-			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
-			log.Debug(logBuilder.String())
-		}
-		break
-
-	//文件关闭 FileClosed
-	case "FileClosed":
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" B站录播姬 文件关闭 ")
-			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
-			log.Debug(logBuilder.String())
-		}
-		break
-
+		fallthrough
 	//录制结束 SessionEnded
 	case "SessionEnded":
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" B站录播姬 录制结束 ")
-		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		log.Info(logBuilder.String())
-		break
-
+		fallthrough
 	//直播开始 StreamStarted
 	case "StreamStarted":
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" B站录播姬 直播开始 ")
-		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		log.Info(logBuilder.String())
-
-		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		msgTitleBuilder.WriteString(" 开播了")
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		msgContentBuilder.WriteString("\n- 标题：")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
-		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
-		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
-
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "Face"), webhookId),
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 ")
+			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString("：")
+			logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			log.Info(logBuilder.String())
 		}
-		msg.Send()
+		if eventSettings.Notify {
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			msgTitleBuilder.WriteString(" ")
+			msgTitleBuilder.WriteString(bililiveRecoderEventName[eventType])
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
+
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+			}
+			msg.Send()
+		}
 		break
 
 	//直播结束 StreamEnded
 	case "StreamEnded":
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" B站录播姬 直播结束 ")
-		logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		log.Info(logBuilder.String())
-
-		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"), webhookId)
-		if isRoomLocked {
-			msgTitleBuilder.WriteString(" 直播间被封禁")
-		} else {
-			msgTitleBuilder.WriteString(" 直播结束")
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 直播结束 ")
+			logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			log.Info(logBuilder.String())
 		}
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
-		msgContentBuilder.WriteString(")")
-		msgContentBuilder.WriteString("\n- 标题：")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
-		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
-		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
-		if isRoomLocked {
-			if lockTill > 0 {
-				msgContentBuilder.WriteString("\n- 封禁到：")
-				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+		if eventSettings.Notify {
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"), webhookId)
+			if isRoomLocked {
+				msgTitleBuilder.WriteString(" 直播间被封禁")
+			} else {
+				msgTitleBuilder.WriteString(" 直播结束")
 			}
-		}
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
+			if isRoomLocked {
+				if lockTill > 0 {
+					msgContentBuilder.WriteString("\n- 封禁到：")
+					msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+				}
+			}
 
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-			ID:      webhookId,
-			IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "Face"), webhookId),
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+			}
+			msg.Send()
 		}
-		msg.Send()
 		break
 
-	//	别的不关心，所以没写
+	//文件打开 FileOpening
+	case "FileOpening":
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 ")
+			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString(" ")
+			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
+			msgContentBuilder.WriteString("\n- 文件：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
+			msgContentBuilder.WriteString("\n- 文件打开时间：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileOpenTime"))
+
+			var msg = messageSender.Message{
+				Title:   "B站录播姬 文件打开",
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+			}
+			msg.Send()
+		}
+	//文件关闭 FileClosed
+	case "FileClosed":
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" B站录播姬 ")
+			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString(" ")
+			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.WriteString(bililiveRecoderEventName[eventType])
+			msgTitleBuilder.WriteString(" ")
+			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "RoomId"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameParent"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
+			msgContentBuilder.WriteString("\n- 文件：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
+			msgContentBuilder.WriteString("\n- 时长：")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("EventData", "Duration"), 10))
+			msgContentBuilder.WriteString("秒")
+			msgContentBuilder.WriteString("\n- 文件大小：")
+			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("EventData", "Size")))
+			msgContentBuilder.WriteString("\n- 文件关闭时间：")
+			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileCloseTime"))
+
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+			}
+			msg.Send()
+		}
+		break
+
 	default:
 		var logBuilder strings.Builder
 		logBuilder.WriteString(webhookId)
 		logBuilder.WriteString(" BililiveRecoder 未知的webhook请求类型：")
 		logBuilder.WriteString(eventType)
 		log.Warn(logBuilder.String())
+	}
+	if eventSettings.HaveCommand {
+		log.Info(webhookId, "执行命令：", eventSettings.ExecCommand)
+		cmd := exec.Command(eventSettings.ExecCommand)
+		err := cmd.Run()
+		if err != nil {
+			log.Error(webhookId, "执行命令失败：", err.Error())
+		}
 	}
 }
 
@@ -187,4 +246,19 @@ func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request)
 		return
 	}
 	go bililiveRecoderTaskRunner(content)
+}
+
+var bililiveRecoderEventName = map[string]string{
+	"SessionStarted": "录制开始",
+	"FileOpening":    "文件打开",
+	"FileClosed":     "文件关闭",
+	"SessionEnded":   "录制结束",
+	"StreamStarted":  "直播开始",
+	"StreamEnded":    "直播结束",
+}
+
+var bililiveRecoderSettings map[string]Event
+
+func UpdateBililiveRecoderSettings(events map[string]Event) {
+	bililiveRecoderSettings = events
 }

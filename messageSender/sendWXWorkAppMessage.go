@@ -11,27 +11,28 @@ import (
 	"time"
 )
 
-type weworkAppToken struct {
+type wxWorkAppToken struct {
 	sync.Mutex
 	accessToken   string
 	tokenExpireAt int64
 }
 
-type WeworkAppTarget struct {
+type WXWorkAppTarget struct {
 	CorpId    string `yaml:"corpId"`
 	AppSecret string `yaml:"appSecret"`
 	AgentID   string `yaml:"agentId"`
-	token     *weworkAppToken
+	ToUser    string `yaml:"to_user"`
+	token     *wxWorkAppToken
 }
 
-var weworkAppTargets []WeworkAppTarget
+var wxWorkAppTargets []WXWorkAppTarget
 
-func RegisterWeworkAppTarget(target WeworkAppTarget) {
-	target.token = new(weworkAppToken)
-	weworkAppTargets = append(weworkAppTargets, target)
+func RegisterWXWorkApp(target WXWorkAppTarget) {
+	target.token = new(wxWorkAppToken)
+	wxWorkAppTargets = append(wxWorkAppTargets, target)
 }
 
-func updateAccessToken(app WeworkAppTarget) error {
+func updateAccessToken(app WXWorkAppTarget) error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
@@ -73,22 +74,22 @@ func updateAccessToken(app WeworkAppTarget) error {
 	return nil
 }
 
-func SendWeWorkAppMessage(message Message) {
-	length := len(weworkAppTargets)
+func SendWXWorkAppMessage(message Message) {
+	length := len(wxWorkAppTargets)
 	if length > 0 {
 		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				sendWeWorkAppMessage(weworkAppTargets[i], message)
+				sendWXWorkAppMessage(wxWorkAppTargets[i], message)
 			}(i)
 		}
 		wg.Wait()
 	}
 }
 
-func sendWeWorkAppMessage(app WeworkAppTarget, message Message) {
+func sendWXWorkAppMessage(app WXWorkAppTarget, message Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
 		return
 	}
@@ -108,13 +109,15 @@ func sendWeWorkAppMessage(app WeworkAppTarget, message Message) {
 	}
 	// 制作要发送的 Markdown 消息
 	var bodyBuffer bytes.Buffer
-	bodyBuffer.WriteString("{\"touser\":\"@all\",\"msgtype\":\"markdown\",\"agentid\":\"")
+	bodyBuffer.WriteString(`{"touser":"`)
+	bodyBuffer.WriteString(app.ToUser)
+	bodyBuffer.WriteString(`","msgtype":"markdown","agentid":"`)
 	bodyBuffer.WriteString(app.AgentID)
-	bodyBuffer.WriteString("\",\"markdown\":{\"content\":\"# ")
+	bodyBuffer.WriteString(`","markdown":{"content":"# `)
 	bodyBuffer.WriteString(message.Title)
 	bodyBuffer.WriteString("\n")
 	bodyBuffer.WriteString(message.Content)
-	bodyBuffer.WriteString("\"},\"enable_duplicate_check\":1,\"duplicate_check_interval\":3600}")
+	bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
 
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
 	targetUrl := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + app.token.accessToken

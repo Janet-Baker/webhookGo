@@ -1,0 +1,235 @@
+address: '127.0.0.1:14000'
+contact_bilibili: true
+# address 监听地址，默认'127.0.0.1:14000'
+BililiveRecoder:
+  enable: true
+  path: '/bililiverecoder'
+  events:
+    SessionStarted:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    FileOpening:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    FileClosed:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SessionEnded:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    StreamStarted:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    StreamEnded:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+Blrec:
+  enable: true
+  path: '/blrec'
+  events:
+    LiveBeganEvent:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    LiveEndedEvent:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    RoomChangeEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RecordingStartedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RecordingFinishedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RecordingCancelledEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    VideoFileCreatedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    VideoFileCompletedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    DanmakuFileCreatedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    DanmakuFileCompletedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RawDanmakuFileCreatedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RawDanmakuFileCompletedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    VideoPostprocessingCompletedEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SpaceNoEnoughEvent:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    Error:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+DDTV:
+  enable: true
+  path: "/ddtv"
+  events:
+    StartLive:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    StopLive:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    StartRec:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RecComplete:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    CancelRec:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    TranscodingComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SaveDanmuComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SaveSCComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SaveGiftComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    SaveGuardComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    RunShellComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    DownloadEndMissionSuccess:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    SpaceIsInsufficientWarn:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    LoginFailure:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    LoginWillExpireSoon:
+      care: true
+      notify: false
+      have_command: false
+      exec_command: ""
+    UpdateAvailable:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    ShellExecutionComplete:
+      care: false
+      notify: false
+      have_command: false
+      exec_command: ""
+    WarnedByAdmin:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    LiveCutOff:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+    RoomLocked:
+      care: true
+      notify: true
+      have_command: false
+      exec_command: ""
+Bark:
+  - url: "https://api.day.app/"
+    secrets: ""
+#    需要多个服务器可多复制几遍
+#  - url: 推送服务器地址，默认"https://api.day.app/"
+#    secrets: 你的推送密钥，格式为 "ABcDeFg1hIjkLmNOPQrstu"
+WXWorkApp:
+  - corpId: ""
+    appSecret: ""
+    agentId: ""
+    to_user: "@all"
+#  - corpId: "ww123456789a01b2c3"
+#    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
+#    agentId: "1000002"
+#    to_user: "@all"

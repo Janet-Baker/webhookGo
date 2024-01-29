@@ -21,16 +21,20 @@ func init() {
 }
 
 func main() {
-	log.Infof("启动，监听：http://127.0.0.1:14000/ddtv")
-	log.Infof("启动，监听：http://127.0.0.1:14000/bililiverecoder")
-	log.Infof("启动，监听：http://127.0.0.1:14000/blrec")
-	//log.Infof("启动，监听：http://127.0.0.1:14000/")
-	http.HandleFunc("/ddtv", webhookHandler.DDTVWebhookHandler)
-	http.HandleFunc("/bililiverecoder", webhookHandler.BililiveRecoderWebhookHandler)
-	http.HandleFunc("/blrec", webhookHandler.BlrecWebhookHandler)
-	//http.HandleFunc("/", handler)
-	// 监听127.0.0.1:14000
-	err := http.ListenAndServe("127.0.0.1:14000", nil)
+	config := loadConfig()
+	if config.bililiveRecoder.enable {
+		log.Info("B站录播姬已启用，监听 http://" + config.listenAddress + config.bililiveRecoder.path)
+		http.HandleFunc(config.bililiveRecoder.path, webhookHandler.BililiveRecoderWebhookHandler)
+	}
+	if config.blrec.enable {
+		log.Info("blrec已启用，监听 http://" + config.listenAddress + config.blrec.path)
+		http.HandleFunc(config.blrec.path, webhookHandler.BlrecWebhookHandler)
+	}
+	if config.ddtv.enable {
+		log.Info("DDTV已启用，监听 http://" + config.listenAddress + config.ddtv.path)
+		http.HandleFunc(config.ddtv.path, webhookHandler.DDTVWebhookHandler)
+	}
+	err := http.ListenAndServe(config.listenAddress, nil)
 	if err != nil {
 		log.Fatalf("监听端口异常，%v", err)
 	}

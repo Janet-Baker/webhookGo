@@ -5,6 +5,7 @@ import (
 	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -24,276 +25,358 @@ func ddtvTaskRunner(content []byte) {
 	log.Infof("%s 收到 DDTV webhook 请求", webhookId)
 
 	// 判断是否是重复的webhook请求
-	webhookMessageIdListLock.Lock()
-	if webhookMessageIdList.IsContain(webhookId) {
-		webhookMessageIdListLock.Unlock()
-		log.Warnf("%s 重复的webhook请求", webhookId)
+	if registerId(webhookId) {
 		return
-	} else {
-		webhookMessageIdList.EnQueue(webhookId)
-		webhookMessageIdListLock.Unlock()
 	}
 
 	// 判断事件类型
-	hookType := getter.GetInt("type")
-	switch hookType {
+	eventType := getter.GetInt("type")
+	eventSettings, _ := ddtvSettings[eventType]
+	switch eventType {
 	//	0 StartLive 主播开播
 	case 0:
-		// 输出日志
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 主播开播：")
-		logBuilder.Write(getter.GetStringBytes("user_info", "name"))
-		log.Info(logBuilder.String())
-		// 构建消息
-		// 构造消息标题
-		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.Write(getter.GetStringBytes("user_info", "name"))
-		msgTitleBuilder.WriteString(" 开播了")
-		// 构造消息内容
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
-		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
-		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
-		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
-		msgContentBuilder.WriteString("\n- 开播时间：")
-		msgContentBuilder.WriteString(time.Unix(getter.GetInt64("room_Info", "live_time"), 0).Local().Format("2006-01-02 15:04:05"))
-		// 发送消息
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-			ID:      webhookId,
-			IconURL: string(getter.GetStringBytes("user_info", "face")),
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" DDTV 主播开播：")
+			logBuilder.Write(getter.GetStringBytes("user_info", "name"))
+			log.Info(logBuilder.String())
 		}
-		msg.Send()
+		if eventSettings.Notify {
+			// 构建消息
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("user_info", "name"))
+			msgTitleBuilder.WriteString(" 开播了")
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+			msgContentBuilder.WriteString("\n- 开播时间：")
+			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("room_Info", "live_time"), 0).Local().Format("2006-01-02 15:04:05"))
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
+		}
 		break
 
 	//	1 StopLive 主播下播
 	case 1:
-		// 输出日志
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 主播下播：")
-		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		log.Info(logBuilder.String())
-		/*// 构造消息
-		// 构造消息标题
-		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		// 封禁检测
-		isLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64(content, "room_Info", "room_id"), webhookId)
-		if isLocked {
-			// 主播被封号了
-			msgTitleBuilder.WriteString(" 喜提直播间封禁！")
-		} else {
-			// 主播正常下播
-			msgTitleBuilder.WriteString(" 下播了")
+		if eventSettings.Care { // 输出日志
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" DDTV 主播下播：")
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			log.Info(logBuilder.String())
 		}
-		// 构造消息内容
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
-		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
-		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
-		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
-		if isLocked {
-			msgContentBuilder.WriteString("\n- 封禁到：")
-			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+		if eventSettings.Notify {
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			// 封禁检测
+			isLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"), webhookId)
+			if isLocked {
+				// 主播被封号了
+				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
+			} else {
+				// 主播正常下播
+				msgTitleBuilder.WriteString(" 下播了")
+			}
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+			if isLocked {
+				msgContentBuilder.WriteString("\n- 封禁到：")
+				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+			}
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
 		}
-		// 发送消息
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-			ID: webhookId,
-			IconURL: string(getter.GetStringBytes("user_info", "face")),
-		}
-		msg.Send()*/
 		break
 
 	//	2 StartRec 开始录制
 	case 2:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 开始录制：")
-		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		log.Info(logBuilder.String())
-		break
+		fallthrough
 
 	//	3 RecComplete 录制结束
 	case 3:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 录制结束：")
-		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		log.Info(logBuilder.String())
-		break
+		fallthrough
 
 	//	4 CancelRec 录制被取消
 	case 4:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 录制被取消：")
-		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		log.Info(logBuilder.String())
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" DDTV")
+			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString("：")
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgTitleBuilder.WriteString(" ")
+			msgTitleBuilder.WriteString(idEventNameMap[eventType])
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
+		}
 		break
 
 	//	5 TranscodingComplete 完成转码
 	case 5:
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 完成转码：")
-			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
-		}
-		break
+		fallthrough
 
 	//	6 SaveDanmuComplete 保存弹幕文件完成
 	case 6:
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 保存弹幕文件完成：")
-			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
-		}
-		break
+		fallthrough
 
 	//	7 SaveSCComplete 保存SC文件完成
 	case 7:
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 保存SC文件完成：")
-			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
-		}
-		break
+		fallthrough
 
 	//	8 SaveGiftComplete 保存礼物文件完成
 	case 8:
-		if log.IsLevelEnabled(log.DebugLevel) {
-			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 保存礼物文件完成：")
-			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
-		}
-		break
+		fallthrough
 
 	//	9 SaveGuardComplete 保存大航海文件完成
 	case 9:
-		if log.IsLevelEnabled(log.DebugLevel) {
+		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 保存大航海文件完成：")
+			logBuilder.WriteString(" DDTV ")
+			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgTitleBuilder.WriteString(" ")
+			msgTitleBuilder.WriteString(idEventNameMap[eventType])
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
 		}
 		break
 
 	//	10 RunShellComplete 执行Shell命令完成
 	case 10:
-		if log.IsLevelEnabled(log.DebugLevel) {
+		fallthrough
+
+	//	16 ShellExecutionComplete 执行Shell命令结束
+	case 16:
+		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 执行Shell命令完成：")
-			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-			log.Debug(logBuilder.String())
+			logBuilder.WriteString(" DDTV ")
+			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString("：")
+			logBuilder.Write(getter.GetStringBytes("room_Info", "Shell"))
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgTitleBuilder.WriteString(" ")
+			msgTitleBuilder.WriteString(idEventNameMap[eventType])
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			if string(getter.GetStringBytes("room_Info", "uname")) != "" {
+				msgContentBuilder.WriteString("- 主播：[")
+				msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+				msgContentBuilder.WriteString("](https://live.bilibili.com/")
+				msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+				msgContentBuilder.WriteString(")\n- 标题：")
+				msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+				msgContentBuilder.WriteString("\n- 分区：")
+				msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+				msgContentBuilder.WriteString(" - ")
+				msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+				msgContentBuilder.WriteString("\n")
+			}
+			msgContentBuilder.WriteString("- 命令：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "Shell"))
+			// 发送消息
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
 		}
 		break
 
 	//	11 DownloadEndMissionSuccess 下载任务成功结束
 	case 11:
-		// 记录日志
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 下载任务成功结束：")
-		logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		log.Info(logBuilder.String())
-
-		// 构造消息
-		// 构造消息内容
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
-		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
-		msgContentBuilder.WriteString("\n- 分区：")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
-		msgContentBuilder.WriteString(" - ")
-		msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
-		// 构造消息标题
-		var msgTitleBuilder strings.Builder
-		msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
-		// 判断是否是封禁
-		isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"), webhookId)
-		if isRoomLocked {
-			// 主播被封号了
-			msgTitleBuilder.WriteString(" 喜提直播间封禁！")
-			msgContentBuilder.WriteString("\n- 封禁到：")
-			msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
-		} else {
-			msgTitleBuilder.WriteString(" 录制完成")
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" DDTV 下载任务成功结束：")
+			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			log.Info(logBuilder.String())
 		}
-		var msg = messageSender.Message{
-			Title:   msgTitleBuilder.String(),
-			Content: msgContentBuilder.String(),
-			ID:      webhookId,
-			IconURL: string(getter.GetStringBytes("user_info", "face")),
+		if eventSettings.Notify {
+			// 构造消息
+			// 构造消息内容
+			var msgContentBuilder strings.Builder
+			msgContentBuilder.WriteString("- 主播：[")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			msgContentBuilder.WriteString("](https://live.bilibili.com/")
+			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("room_Info", "room_id"), 10))
+			msgContentBuilder.WriteString(")\n- 标题：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "title"))
+			msgContentBuilder.WriteString("\n- 分区：")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
+			msgContentBuilder.WriteString(" - ")
+			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
+			// 构造消息标题
+			var msgTitleBuilder strings.Builder
+			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
+			// 判断是否是封禁
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"), webhookId)
+			if isRoomLocked {
+				// 主播被封号了
+				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
+				msgContentBuilder.WriteString("\n- 封禁到：")
+				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
+			} else {
+				msgTitleBuilder.WriteString(" 录制完成")
+			}
+			var msg = messageSender.Message{
+				Title:   msgTitleBuilder.String(),
+				Content: msgContentBuilder.String(),
+				ID:      webhookId,
+				IconURL: string(getter.GetStringBytes("user_info", "face")),
+			}
+			msg.Send()
 		}
-		msg.Send()
 		break
 
 	//	12 SpaceIsInsufficientWarn 剩余空间不足
 	case 12:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 剩余空间不足：")
-		logBuilder.Write(content)
-		log.Warn(logBuilder.String())
+		fallthrough
+
+	//	14 LoginWillExpireSoon 登陆即将失效
+	case 14:
+		if eventSettings.Care {
+			var logBuilder strings.Builder
+			logBuilder.WriteString(webhookId)
+			logBuilder.WriteString(" DDTV ")
+			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString("：")
+			logBuilder.Write(content)
+			log.Warn(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			var msg = messageSender.Message{
+				Title:   "DDTV 剩余空间不足",
+				Content: string(content),
+				ID:      webhookId,
+			}
+			msg.Send()
+		}
 		break
 
 	//	13 LoginFailure 登陆失效
 	case 13:
-		log.Errorf("%s DDTV 登录失效", webhookId)
-		break
-
-	//	14 LoginWillExpireSoon 登陆即将失效
-	case 14:
-		log.Warnf("%s DDTV 登录即将失效", webhookId)
+		if eventSettings.Care {
+			log.Error(webhookId, " DDTV 登录失效")
+		}
+		if eventSettings.Notify {
+			var msg = messageSender.Message{
+				Title:   "DDTV 登录失效",
+				Content: string(content),
+				ID:      webhookId,
+			}
+			msg.Send()
+		}
 		break
 
 	//	15 UpdateAvailable 有可用新版本
 	case 15:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" DDTV 有可用新版本：")
-		logBuilder.Write(getter.GetStringBytes("version"))
-		log.Info(logBuilder.String())
-		break
-
-	//	16 ShellExecutionComplete 执行Shell命令结束
-	case 16:
-		if log.IsLevelEnabled(log.DebugLevel) {
+		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" DDTV 执行Shell命令结束：")
-			logBuilder.Write(content)
-			log.Debug(logBuilder.String())
+			logBuilder.WriteString(" DDTV 有可用新版本：")
+			logBuilder.Write(getter.GetStringBytes("version"))
+			log.Info(logBuilder.String())
+		}
+		if eventSettings.Notify {
+			var msg = messageSender.Message{
+				Title:   "DDTV 有可用新版本",
+				Content: string(content),
+				ID:      webhookId,
+			}
+			msg.Send()
 		}
 		break
 
@@ -408,6 +491,14 @@ func ddtvTaskRunner(content []byte) {
 		logBuilder.Write(getter.GetStringBytes("type"))
 		log.Warn(logBuilder.String())
 	}
+	if eventSettings.HaveCommand {
+		log.Info(webhookId, "执行命令：", eventSettings.ExecCommand)
+		cmd := exec.Command(eventSettings.ExecCommand)
+		err := cmd.Run()
+		if err != nil {
+			log.Error(webhookId, "执行命令失败：", err.Error())
+		}
+	}
 }
 
 // DDTVWebhookHandler 处理 DDTV 的 webhook 请求
@@ -433,4 +524,59 @@ func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	go ddtvTaskRunner(content)
+}
+
+var ddtvSettings = make(map[int]Event)
+var idEventTitleMap = map[int]string{
+	0:  "StartLive",
+	1:  "StopLive",
+	2:  "StartRec",
+	3:  "RecComplete",
+	4:  "CancelRec",
+	5:  "TranscodingComplete",
+	6:  "SaveDanmuComplete",
+	7:  "SaveSCComplete",
+	8:  "SaveGiftComplete",
+	9:  "SaveGuardComplete",
+	10: "RunShellComplete",
+	11: "DownloadEndMissionSuccess",
+	12: "SpaceIsInsufficientWarn",
+	13: "LoginFailure",
+	14: "LoginWillExpireSoon",
+	15: "UpdateAvailable",
+	16: "ShellExecutionComplete",
+	17: "WarnedByAdmin",
+	18: "LiveCutOff",
+	19: "RoomLocked",
+}
+var idEventNameMap = map[int]string{
+	0:  "主播开播",
+	1:  "主播下播",
+	2:  "开始录制",
+	3:  "录制结束",
+	4:  "录制被取消",
+	5:  "完成转码",
+	6:  "保存弹幕文件完成",
+	7:  "保存SC文件完成",
+	8:  "保存礼物文件完成",
+	9:  "保存大航海文件完成",
+	10: "执行Shell命令完成",
+	11: "下载任务成功结束",
+	12: "剩余空间不足",
+	13: "登录失效",
+	14: "登录即将失效",
+	15: "有可用新版本",
+	16: "执行Shell命令结束",
+	17: "被管理员警告",
+	18: "直播被管理员切断",
+	19: "直播间被封禁",
+}
+
+func UpdateDDTVSettings(events map[string]Event) {
+	for id, name := range idEventTitleMap {
+		event, ok := events[name]
+		if ok {
+			ddtvSettings[id] = event
+		}
+	}
 }

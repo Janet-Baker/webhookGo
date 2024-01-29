@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var ContactBilibili = true
+
 // 请求相关
 var tr = &http.Transport{
 	ForceAttemptHTTP2:     true,
@@ -63,6 +65,9 @@ func reqHeaderSetter(header *http.Header) {
 
 // GetUidByRoomid 通过roomid获取uid
 func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
+	if !ContactBilibili {
+		return 0, nil
+	}
 	// 检查缓存的字典中是否已经存在
 	uid, ok := roomidUidDict[roomId]
 	if ok {
@@ -119,6 +124,9 @@ func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
 
 // GetAvatarByUid 通过uid获取头像
 func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
+	if !ContactBilibili {
+		return "", nil
+	}
 	// 检查缓存的字典中是否已经存在
 	avatar, ok := avatarDict[uid]
 	if ok {
@@ -178,6 +186,9 @@ func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
 
 // GetAvatarByRoomID 通过roomid获取头像
 func GetAvatarByRoomID(roomid uint64, webhookId string) string {
+	if !ContactBilibili {
+		return ""
+	}
 	uid, err := GetUidByRoomid(roomid, webhookId)
 	if err != nil {
 		return ""
@@ -190,7 +201,10 @@ func GetAvatarByRoomID(roomid uint64, webhookId string) string {
 }
 
 // IsRoomLocked 检查主播房间是否被封禁 返回状态和时间戳
-func IsRoomLocked(roomId uint64, webhookId string) (bool, int64) {
+func IsRoomLocked(roomId uint64, webhookId string) (isLocked bool, lockTill int64) {
+	if !ContactBilibili {
+		return false, 0
+	}
 	// 每次下播时更新
 	time.Sleep(1 * time.Second)
 	// 构造请求
@@ -240,7 +254,7 @@ func IsRoomLocked(roomId uint64, webhookId string) (bool, int64) {
 	uid := getter.GetUint64("data", "uid")
 	roomidUidDict[roomId] = uid
 	// 读取锁定状态
-	isLocked := getter.GetBool("data", "is_locked")
-	lockTill := getter.GetInt64("data", "lock_till")
+	isLocked = getter.GetBool("data", "is_locked")
+	lockTill = getter.GetInt64("data", "lock_till")
 	return isLocked, lockTill
 }
