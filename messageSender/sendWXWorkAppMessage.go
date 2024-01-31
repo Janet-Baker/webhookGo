@@ -123,22 +123,22 @@ func sendWXWorkAppMessage(app WXWorkAppTarget, message Message) {
 	targetUrl := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + app.token.accessToken
 
 	// 发送请求
-	log.Trace(message.ID, "发送企业微信应用消息 请求地址", targetUrl)
+	log.Trace("发送企业微信应用消息 请求地址", targetUrl)
 	resp, err := http.Post(targetUrl, "application/json", &bodyBuffer)
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Error(message.ID, "发送企业微信应用消息 关闭连接失败", errCloser.Error())
+			log.Error("发送企业微信应用消息 关闭连接失败", errCloser.Error())
 		}
 	}(resp.Body)
 	if err != nil {
-		log.Error(message.ID, "发送企业微信应用消息 请求失败", err.Error())
+		log.Error("发送企业微信应用消息 请求失败", err.Error())
 		return
 	}
 	// 读取响应消息
 	content, errReader := io.ReadAll(resp.Body)
 	if errReader != nil {
-		log.Error(message.ID, "发送企业微信应用消息 读取响应内容失败", errReader.Error())
+		log.Error("发送企业微信应用消息 读取响应内容失败", errReader.Error())
 		return
 	}
 	var p fastjson.Parser
@@ -148,13 +148,13 @@ func sendWXWorkAppMessage(app WXWorkAppTarget, message Message) {
 	}
 	errcode := getter.GetInt("errcode")
 	if errcode != 0 {
-		log.Error(message.ID, "发送企业微信应用消息 服务器返回错误", content)
+		log.Error("发送企业微信应用消息 服务器返回错误", content)
 		return
 	}
 	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Trace(message.ID, "发送企业微信应用消息成功 响应消息", content)
+		log.Trace("发送企业微信应用消息成功 响应消息", content)
 	} else {
-		log.Debug(message.ID, "发送企业微信应用消息成功 消息id", getter.GetStringBytes("msgid"))
+		log.Debug("发送企业微信应用消息成功 消息id", getter.GetStringBytes("msgid"))
 	}
 	return
 }

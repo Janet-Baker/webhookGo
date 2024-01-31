@@ -1,14 +1,39 @@
-address: '127.0.0.1:14000'
-contact_bilibili: true
 # address 监听地址，默认'127.0.0.1:14000'
+address: '127.0.0.1:14000'
+# contact_bilibili 允许访问Bilibili服务器，获取主播头像，下播时检查直播间封禁状态。
+contact_bilibili: true
+Bark:
+#    需要多个服务器可多复制几遍
+#  - url: 推送服务器地址，默认"https://api.day.app/"
+#    secrets: 你的推送密钥，格式为 "ABcDeFg1hIjkLmNOPQrstu"
+  - url: "https://api.day.app/"
+    secrets: ""
+
+WXWorkApp:
+#  - corpId: "ww123456789a01b2c3"
+#    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
+#    agentId: "1000002"
+#    to_user: "@all"
+  - corpId: ""
+    appSecret: ""
+    agentId: ""
+    to_user: "@all"
+
 BililiveRecoder:
+  # enable 是否启用该服务
   enable: true
+  # path 该服务的访问路径
   path: '/bililiverecoder'
+  # events 该服务监听的事件，事件种类见 https://rec.danmuji.org/reference/webhook/#webhook-v2
   events:
     SessionStarted:
+      # care 是否在控制台提示收到了该事件
       care: false
+      # notify 是否推送该事件
       notify: false
+      # have_command 是否执行命令
       have_command: false
+      # exec_command 执行的命令
       exec_command: ""
     FileOpening:
       care: false
@@ -38,6 +63,7 @@ BililiveRecoder:
 Blrec:
   enable: true
   path: '/blrec'
+  # 事件种类及可提取的信息见 https://github.com/acgnhiki/blrec/wiki/Webhook
   events:
     LiveBeganEvent:
       care: true
@@ -105,18 +131,19 @@ Blrec:
       have_command: false
       exec_command: ""
     SpaceNoEnoughEvent:
-      care: false
-      notify: false
+      care: true
+      notify: true
       have_command: false
       exec_command: ""
     Error:
-      care: false
-      notify: false
+      care: true
+      notify: true
       have_command: false
       exec_command: ""
 DDTV:
   enable: true
   path: "/ddtv"
+  # 事件种类见 https://ddtv.pro/AdvancedFeatures/Webhook.html#%E4%BA%8B%E4%BB%B6%E7%B1%BB%E5%9E%8B
   events:
     StartLive:
       care: true
@@ -218,18 +245,3 @@ DDTV:
       notify: true
       have_command: false
       exec_command: ""
-Bark:
-  - url: "https://api.day.app/"
-    secrets: ""
-#    需要多个服务器可多复制几遍
-#  - url: 推送服务器地址，默认"https://api.day.app/"
-#    secrets: 你的推送密钥，格式为 "ABcDeFg1hIjkLmNOPQrstu"
-WXWorkApp:
-  - corpId: ""
-    appSecret: ""
-    agentId: ""
-    to_user: "@all"
-#  - corpId: "ww123456789a01b2c3"
-#    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
-#    agentId: "1000002"
-#    to_user: "@all"

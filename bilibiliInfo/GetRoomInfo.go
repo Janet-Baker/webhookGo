@@ -64,7 +64,7 @@ func reqHeaderSetter(header *http.Header) {
 }
 
 // GetUidByRoomid 通过roomid获取uid
-func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
+func GetUidByRoomid(roomId uint64) (uint64, error) {
 	if !ContactBilibili {
 		return 0, nil
 	}
@@ -79,29 +79,29 @@ func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
 	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
-		log.Error(webhookId, "请求用户uid 构造请求失败", errRequest.Error())
+		log.Error("请求用户uid 构造请求失败", errRequest.Error())
 		return 0, errRequest
 	}
 	reqHeaderSetter(&req.Header)
 	// 发起请求
 	resp, err := BiliBiliClient.Do(req)
 	if err != nil {
-		log.Error(webhookId, "请求用户uid 请求失败", err.Error())
+		log.Error("请求用户uid 请求失败", err.Error())
 		return 0, err
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Error(webhookId, "请求用户uid 关闭消息发送响应失败", errCloser.Error())
+			log.Error("请求用户uid 关闭消息发送响应失败", errCloser.Error())
 		}
 	}(resp.Body)
 	// 读取请求
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(webhookId, "请求用户uid 读取响应消息失败", err.Error())
+		log.Error("请求用户uid 读取响应消息失败", err.Error())
 		return 0, err
 	}
-	log.Trace(webhookId, "请求用户uid 响应", content)
+	log.Trace("请求用户uid 响应", content)
 
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -112,7 +112,7 @@ func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
 	// 检查错误码
 	code := getter.GetInt("code")
 	if 0 != code {
-		log.Error(webhookId, "请求用户uid 失败", getter.GetStringBytes("message"))
+		log.Error("请求用户uid 失败", getter.GetStringBytes("message"))
 		return 0, errors.New(string(getter.GetStringBytes("msg")))
 	}
 	// 读取 uid
@@ -123,7 +123,7 @@ func GetUidByRoomid(roomId uint64, webhookId string) (uint64, error) {
 }
 
 // GetAvatarByUid 通过uid获取头像
-func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
+func GetAvatarByUid(uid uint64) (string, error) {
 	if !ContactBilibili {
 		return "", nil
 	}
@@ -138,29 +138,29 @@ func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
 	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatUint(uid, 10)
 	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
-		log.Error(webhookId, "请求用户头像 构造请求失败：", errRequest.Error())
+		log.Error("请求用户头像 构造请求失败：", errRequest.Error())
 		return "", errRequest
 	}
 	reqHeaderSetter(&req.Header)
 	// 发起请求
 	resp, err := BiliBiliClient.Do(req)
 	if err != nil {
-		log.Error(webhookId, "请求用户头像 请求失败：", err.Error())
+		log.Error("请求用户头像 请求失败：", err.Error())
 		return "", err
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Error(webhookId, "请求用户头像 关闭消息发送响应失败：", errCloser.Error())
+			log.Error("请求用户头像 关闭消息发送响应失败：", errCloser.Error())
 		}
 	}(resp.Body)
 	// 读取请求
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(webhookId, "请求用户头像 读取响应消息失败：", err.Error())
+		log.Error("请求用户头像 读取响应消息失败：", err.Error())
 		return "", err
 	}
-	log.Trace(webhookId, "请求用户头像 响应：", content)
+	log.Trace("请求用户头像 响应：", content)
 
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -172,7 +172,7 @@ func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
 	code := getter.GetInt("code")
 
 	if 0 != code {
-		log.Error(webhookId, "请求用户头像 失败：", getter.GetStringBytes("message"))
+		log.Error("请求用户头像 失败：", getter.GetStringBytes("message"))
 		return "", errors.New(string(getter.GetStringBytes("msg")))
 	}
 	// 读取头像
@@ -185,15 +185,15 @@ func GetAvatarByUid(uid uint64, webhookId string) (string, error) {
 }
 
 // GetAvatarByRoomID 通过roomid获取头像
-func GetAvatarByRoomID(roomid uint64, webhookId string) string {
+func GetAvatarByRoomID(roomid uint64) string {
 	if !ContactBilibili {
 		return ""
 	}
-	uid, err := GetUidByRoomid(roomid, webhookId)
+	uid, err := GetUidByRoomid(roomid)
 	if err != nil {
 		return ""
 	}
-	avatar, err := GetAvatarByUid(uid, webhookId)
+	avatar, err := GetAvatarByUid(uid)
 	if err != nil {
 		return ""
 	}
@@ -201,7 +201,7 @@ func GetAvatarByRoomID(roomid uint64, webhookId string) string {
 }
 
 // IsRoomLocked 检查主播房间是否被封禁 返回状态和时间戳
-func IsRoomLocked(roomId uint64, webhookId string) (isLocked bool, lockTill int64) {
+func IsRoomLocked(roomId uint64) (isLocked bool, lockTill int64) {
 	if !ContactBilibili {
 		return false, 0
 	}
@@ -212,29 +212,29 @@ func IsRoomLocked(roomId uint64, webhookId string) (isLocked bool, lockTill int6
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
 	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
 	if errRequest != nil {
-		log.Error(webhookId, "请求直播间封禁状态 构造请求失败", errRequest.Error())
+		log.Error("请求直播间封禁状态 构造请求失败", errRequest.Error())
 		return false, 0
 	}
 	reqHeaderSetter(&req.Header)
 	// 发起请求
 	resp, err := BiliBiliClient.Do(req)
 	if err != nil {
-		log.Error(webhookId, "请求直播间封禁状态 请求失败", err.Error())
+		log.Error("请求直播间封禁状态 请求失败", err.Error())
 		return false, 0
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Error(webhookId, "请求直播间封禁状态 关闭消息发送响应失败", errCloser.Error())
+			log.Error("请求直播间封禁状态 关闭消息发送响应失败", errCloser.Error())
 		}
 	}(resp.Body)
 	// 读取请求
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error(webhookId, "请求直播间封禁状态 读取响应消息失败", err.Error())
+		log.Error("请求直播间封禁状态 读取响应消息失败", err.Error())
 		return false, 0
 	}
-	log.Trace(webhookId, "请求直播间封禁状态 响应", content)
+	log.Trace("请求直播间封禁状态 响应", content)
 
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -246,7 +246,7 @@ func IsRoomLocked(roomId uint64, webhookId string) (isLocked bool, lockTill int6
 	code := getter.GetInt("code")
 	//code := roomInfo.Code
 	if 0 != code {
-		log.Error(webhookId, "请求直播间封禁状态 失败", getter.GetStringBytes("message"))
+		log.Error("请求直播间封禁状态 失败", getter.GetStringBytes("message"))
 		return false, 0
 	}
 

@@ -11,22 +11,16 @@ import (
 	"webhookGo/webhookHandler"
 )
 
+type options struct {
+	enable bool
+	path   string
+}
 type initStruct struct {
 	listenAddress   string
-	bililiveRecoder struct {
-		enable bool
-		path   string
-	}
-	blrec struct {
-		enable bool
-		path   string
-	}
-	ddtv struct {
-		enable bool
-		path   string
-	}
+	bililiveRecoder options
+	blrec           options
+	ddtv            options
 }
-
 type ConfigLoader struct {
 	ListenAddress   string                          `yaml:"address"`
 	ContactBilibili bool                            `yaml:"contact_bilibili"`
@@ -114,6 +108,7 @@ func loadConfig() initStruct {
 	}
 
 	if configuration.ListenAddress == "" {
+		log.Warn("未指定监听地址，将使用默认地址 127.0.0.1:14000")
 		configuration.ListenAddress = "127.0.0.1:14000"
 	}
 	if !configuration.ContactBilibili {
@@ -121,19 +116,10 @@ func loadConfig() initStruct {
 	}
 	bilibiliInfo.ContactBilibili = configuration.ContactBilibili
 	config := initStruct{
-		listenAddress: configuration.ListenAddress,
-		bililiveRecoder: struct {
-			enable bool
-			path   string
-		}{configuration.BililiveRecoder.Enable, configuration.BililiveRecoder.Path},
-		blrec: struct {
-			enable bool
-			path   string
-		}{configuration.Blrec.Enable, configuration.Blrec.Path},
-		ddtv: struct {
-			enable bool
-			path   string
-		}{configuration.DDTV.Enable, configuration.DDTV.Path},
+		listenAddress:   configuration.ListenAddress,
+		bililiveRecoder: options{enable: configuration.BililiveRecoder.Enable, path: configuration.BililiveRecoder.Path},
+		blrec:           options{enable: configuration.Blrec.Enable, path: configuration.Blrec.Path},
+		ddtv:            options{enable: configuration.DDTV.Enable, path: configuration.DDTV.Path},
 	}
 	if configuration.BililiveRecoder.Enable {
 		webhookHandler.UpdateBililiveRecoderSettings(configuration.BililiveRecoder.Events)
@@ -148,12 +134,11 @@ func loadConfig() initStruct {
 }
 
 //go:embed defaultConfig.yml
-var defaultConfig string
+var defaultConfig []byte
 
 // writeDefaultConfig 没有读取到配置文件时，新建一个。
 func writeDefaultConfig(secretFile string) {
-	var defaultSecrets = []byte(defaultConfig)
-	err := os.WriteFile(secretFile, defaultSecrets, 0o644)
+	err := os.WriteFile(secretFile, defaultConfig, 0o644)
 	if err != nil {
 		log.Fatal("写入默认secrets文件失败!", err)
 	} else {

@@ -36,6 +36,6 @@ func main() {
 	}
 	err := http.ListenAndServe(config.listenAddress, nil)
 	if err != nil {
-		log.Fatalf("监听端口异常，%v", err)
+		log.Fatalf("监听端口异常，%+v", err)
 	}
 }

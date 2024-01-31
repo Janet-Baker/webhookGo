@@ -70,8 +70,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
 			msg.Send()
 		}
@@ -89,7 +88,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		if eventSettings.Notify {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"), webhookId)
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"))
 			if isRoomLocked {
 				msgTitleBuilder.WriteString(" 直播间被封禁")
 			} else {
@@ -116,8 +115,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
 			msg.Send()
 		}
@@ -154,8 +152,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   "B站录播姬 文件打开",
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
 			msg.Send()
 		}
@@ -199,8 +196,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId"), webhookId),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
 			msg.Send()
 		}

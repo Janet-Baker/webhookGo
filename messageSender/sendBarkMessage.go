@@ -21,7 +21,6 @@ func RegisterBarkServer(barkServer BarkServer) {
 }
 
 func SendBarkMessage(message Message) {
-	// resp, err := http.Get("https://api.day.app/" + secrets.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content))
 	length := len(barkServers)
 	if length > 0 {
 		wg := sync.WaitGroup{}
@@ -47,17 +46,17 @@ func sendBarkMessage(barkServer BarkServer, message Message) {
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Errorf("%s 发送Bark消息：关闭消息发送响应失败：%s", message.ID, errCloser.Error())
+			log.Error("发送Bark消息：关闭消息发送响应失败：", errCloser.Error())
 		}
 	}(resp.Body)
 	if err != nil {
-		log.Errorf("%s 发送Bark消息失败：%s", message.ID, err.Error())
+		log.Error("发送Bark消息失败：%s", err.Error())
 		return
 	}
 	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Tracef("%s 发送Bark消息响应：%+v", message.ID, resp)
+		log.Tracef("发送Bark消息响应：%+v", resp)
 	} else {
-		log.Debugf("%s 发送Bark消息成功", message.ID)
+		log.Debug("发送Bark消息成功")
 	}
 	return
 }
