@@ -38,8 +38,7 @@ func blrecTaskRunner(content []byte) {
 		if eventSettings.Care {
 			// 构造日志
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec 主播开播：")
+			logBuilder.WriteString("blrec 主播开播：")
 			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
 			log.Info(logBuilder.String())
 		}
@@ -65,7 +64,6 @@ func blrecTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
 			msg.Send()
@@ -77,8 +75,7 @@ func blrecTaskRunner(content []byte) {
 		if eventSettings.Care {
 			// 构造日志
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec 主播下播：")
+			logBuilder.WriteString("blrec 主播下播：")
 			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
 			log.Info(logBuilder.String())
 		}
@@ -86,7 +83,7 @@ func blrecTaskRunner(content []byte) {
 			// 构造消息
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("data", "room_info", "room_id"), webhookId)
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("data", "room_info", "room_id"))
 			if isRoomLocked {
 				msgTitleBuilder.WriteString(" 直播间被封禁")
 			} else {
@@ -111,7 +108,6 @@ func blrecTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
 			msg.Send()
@@ -134,8 +130,7 @@ func blrecTaskRunner(content []byte) {
 	case "RecordingCancelledEvent":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec ")
+			logBuilder.WriteString("blrec ")
 			logBuilder.WriteString(blrecEventNameMap[hookType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
@@ -161,7 +156,6 @@ func blrecTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
 			msg.Send()
@@ -196,8 +190,7 @@ func blrecTaskRunner(content []byte) {
 	case "VideoPostprocessingCompletedEvent":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec ")
+			logBuilder.WriteString("blrec ")
 			logBuilder.WriteString(blrecEventNameMap[hookType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("data", "path"))
@@ -218,8 +211,7 @@ func blrecTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("data", "room_id"), webhookId),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("data", "room_id")),
 			}
 			msg.Send()
 		}
@@ -229,16 +221,13 @@ func blrecTaskRunner(content []byte) {
 	case "SpaceNoEnoughEvent":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec 硬盘空间不足：文件路径：")
+			logBuilder.WriteString("blrec 硬盘空间不足：文件路径：")
 			logBuilder.Write(getter.GetStringBytes("data", "path"))
 			logBuilder.WriteString("；可用空间：")
 			logBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
 			log.Warn(logBuilder.String())
 		}
 		if eventSettings.Notify {
-			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.WriteString("硬盘空间不足")
 			var msgContentBuilder strings.Builder
 			msgContentBuilder.WriteString("- 文件路径：")
 			msgContentBuilder.Write(getter.GetStringBytes("data", "path"))
@@ -252,9 +241,8 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
 
 			var msg = messageSender.Message{
-				Title:   msgTitleBuilder.String(),
+				Title:   "blrec 硬盘空间不足",
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
 			}
 			msg.Send()
 		}
@@ -264,8 +252,7 @@ func blrecTaskRunner(content []byte) {
 	case "Error":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
-			logBuilder.WriteString(webhookId)
-			logBuilder.WriteString(" blrec 程序出现异常：")
+			logBuilder.WriteString("blrec 程序出现异常：")
 			logBuilder.Write(getter.GetStringBytes("data"))
 			log.Warn(logBuilder.String())
 		}
@@ -277,7 +264,6 @@ func blrecTaskRunner(content []byte) {
 			var msg = messageSender.Message{
 				Title:   "blrec 程序出现异常",
 				Content: msgContentBuilder.String(),
-				ID:      webhookId,
 			}
 			msg.Send()
 		}
@@ -291,11 +277,11 @@ func blrecTaskRunner(content []byte) {
 		log.Warn(logBuilder.String(), content)
 	}
 	if eventSettings.HaveCommand {
-		log.Info(webhookId, "执行命令：", eventSettings.ExecCommand)
+		log.Info("执行命令：", eventSettings.ExecCommand)
 		cmd := exec.Command(eventSettings.ExecCommand)
 		err := cmd.Run()
 		if err != nil {
-			log.Error(webhookId, "执行命令失败：", err.Error())
+			log.Error("执行命令失败：", err.Error())
 		}
 	}
 }

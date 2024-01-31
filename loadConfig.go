@@ -114,6 +114,7 @@ func loadConfig() initStruct {
 	}
 
 	if configuration.ListenAddress == "" {
+		log.Warn("未指定监听地址，将使用默认地址 127.0.0.1:14000")
 		configuration.ListenAddress = "127.0.0.1:14000"
 	}
 	if !configuration.ContactBilibili {
@@ -148,12 +149,11 @@ func loadConfig() initStruct {
 }
 
 //go:embed defaultConfig.yml
-var defaultConfig string
+var defaultConfig []byte
 
 // writeDefaultConfig 没有读取到配置文件时，新建一个。
 func writeDefaultConfig(secretFile string) {
-	var defaultSecrets = []byte(defaultConfig)
-	err := os.WriteFile(secretFile, defaultSecrets, 0o644)
+	err := os.WriteFile(secretFile, defaultConfig, 0o644)
 	if err != nil {
 		log.Fatal("写入默认secrets文件失败!", err)
 	} else {
