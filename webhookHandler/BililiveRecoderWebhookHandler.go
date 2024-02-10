@@ -22,7 +22,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		return
 	}
 	webhookId := string(getter.GetStringBytes("EventId"))
-	log.Info(webhookId, "收到 BililiveRecoder webhook 请求")
+	log.Debug(webhookId, "收到 BililiveRecoder webhook 请求")
 
 	// 判断是否是重复的webhook请求
 	if registerId(webhookId) {

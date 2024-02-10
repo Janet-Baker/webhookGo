@@ -2,6 +2,7 @@
 address: '127.0.0.1:14000'
 # contact_bilibili 允许访问Bilibili服务器，获取主播头像，下播时检查直播间封禁状态。
 contact_bilibili: true
+debug: false
 Bark:
 #    需要多个服务器可多复制几遍
 #  - url: 推送服务器地址，默认"https://api.day.app/"

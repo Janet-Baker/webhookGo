@@ -37,33 +37,33 @@ func updateAccessToken(app WXWorkAppTarget) error {
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
 	url := "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + app.CorpId + "&corpsecret=" + app.AppSecret
-	log.Tracef("更新企业微信应用的access_token：请求地址：%s", url)
+	log.Trace("更新企业微信应用的access_token：请求地址：", url)
 	// 发送请求
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Errorf("更新企业微信应用的access_token：请求发送失败：%s", err.Error())
+		log.Error("更新企业微信应用的access_token：请求发送失败：", err.Error())
 		return err
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
-			log.Errorf("更新企业微信应用的access_token：关闭连接失败：%s", err.Error())
+			log.Error("更新企业微信应用的access_token：关闭连接失败：", err.Error())
 		}
 	}(resp.Body)
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Errorf("更新企业微信应用的access_token：读取响应消息失败：%s", err.Error())
+		log.Error("更新企业微信应用的access_token：读取响应消息失败：", err.Error())
 		return err
 	}
-	log.Tracef("更新企业微信应用的access_token：响应消息：%s", content)
+	log.Trace("更新企业微信应用的access_token：响应消息：", content)
 
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
 	if errOfJsonParser != nil {
 		return errOfJsonParser
 	}
-	errcode := getter.GetInt("errcode")
-	if 0 != errcode {
+	errCode := getter.GetInt("errcode")
+	if 0 != errCode {
 		log.Error("更新企业微信应用的access_token失败：", getter.GetStringBytes("errmsg"))
 		return errors.New(string(getter.GetStringBytes("errmsg")))
 	}

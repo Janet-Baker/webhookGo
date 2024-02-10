@@ -15,9 +15,6 @@ func init() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
-	// 设置Debug模式
-	/*log.SetLevel(log.DebugLevel)
-	log.Warnf("已开启Debug模式.")*/
 }
 
 func main() {
