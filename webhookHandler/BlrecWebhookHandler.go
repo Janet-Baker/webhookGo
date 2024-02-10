@@ -22,7 +22,7 @@ func blrecTaskRunner(content []byte) {
 		return
 	}
 	webhookId := string(getter.GetStringBytes("id"))
-	log.Info(webhookId, "收到 blrec webhook 请求")
+	log.Debug(webhookId, "收到 blrec webhook 请求")
 
 	// 判断是否是重复的webhook请求
 	if registerId(webhookId) {

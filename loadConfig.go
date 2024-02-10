@@ -28,6 +28,7 @@ type initStruct struct {
 }
 
 type ConfigLoader struct {
+	Debug           bool                            `yaml:"debug"`
 	ListenAddress   string                          `yaml:"address"`
 	ContactBilibili bool                            `yaml:"contact_bilibili"`
 	Barks           []messageSender.BarkServer      `yaml:"Bark"`
@@ -65,8 +66,16 @@ func loadConfig() initStruct {
 		}
 	} else {
 		writeDefaultConfig(configFile)
+		err = yaml.Unmarshal(defaultConfig, &configuration)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
+	if configuration.Debug {
+		log.SetLevel(log.DebugLevel)
+		log.Warnf("已开启Debug模式.")
+	}
 	if !(configuration.BililiveRecoder.Enable || configuration.Blrec.Enable || configuration.DDTV.Enable) {
 		log.Fatal("没有关注的事件")
 	}
@@ -157,7 +166,6 @@ func writeDefaultConfig(secretFile string) {
 	if err != nil {
 		log.Fatal("写入默认secrets文件失败!", err)
 	} else {
-		log.Info("写入默认secrets文件成功，请修改配置文件后重启程序。")
+		log.Warn("写入默认secrets文件成功，请修改配置文件后重启程序。")
 	}
-	os.Exit(0)
 }
