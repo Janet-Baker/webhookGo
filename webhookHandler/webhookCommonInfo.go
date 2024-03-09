@@ -6,24 +6,63 @@ import (
 	"time"
 )
 
-var webhookMessageIds = make(map[string]int64)
-var webhookMessageIdsLock sync.Mutex
+type Cache struct {
+	m     map[string]int64
+	mutex sync.Mutex
+}
+
+func NewAutoCleanupCache() *Cache {
+	c := &Cache{
+		m: make(map[string]int64),
+	}
+	go c.autoCleanup()
+	return c
+}
+
+func (c *Cache) Add(id string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.m[id] = time.Now().Unix()
+}
+
+func (c *Cache) Get(id string) (int64, bool) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	val, ok := c.m[id]
+	return val, ok
+}
+
+func (c *Cache) Delete(id string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	delete(c.m, id)
+}
+
+func (c *Cache) CleanUp() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	for id, t := range c.m {
+		if time.Now().Unix()-t >= 3600 {
+			delete(c.m, id)
+		}
+	}
+}
+
+func (c *Cache) autoCleanup() {
+	ticker := time.NewTicker(time.Hour)
+	for range ticker.C {
+		c.CleanUp()
+	}
+}
+
+var idCache = NewAutoCleanupCache()
 
 func registerId(id string) (exist bool) {
-	webhookMessageIdsLock.Lock()
-	defer webhookMessageIdsLock.Unlock()
-	// query
-	_, exist = webhookMessageIds[id]
+	_, exist = idCache.Get(id)
 	if exist {
 		return
 	}
-	webhookMessageIds[id] = time.Now().Unix()
-	go func(id string) {
-		time.Sleep(time.Hour)
-		webhookMessageIdsLock.Lock()
-		defer webhookMessageIdsLock.Unlock()
-		delete(webhookMessageIds, id)
-	}(id)
+	idCache.Add(id)
 	return
 }
 
