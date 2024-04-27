@@ -74,22 +74,16 @@ func updateAccessToken(app WXWorkAppTarget) error {
 	return nil
 }
 
-func SendWXWorkAppMessage(message Message) {
+func SendWXWorkAppMessage(message *Message) {
 	length := len(wxWorkAppTargets)
 	if length > 0 {
-		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				sendWXWorkAppMessage(wxWorkAppTargets[i], message)
-			}(i)
+			sendWXWorkAppMessage(wxWorkAppTargets[i], message)
 		}
-		wg.Wait()
 	}
 }
 
-func sendWXWorkAppMessage(app WXWorkAppTarget, message Message) {
+func sendWXWorkAppMessage(app WXWorkAppTarget, message *Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
 		return
 	}

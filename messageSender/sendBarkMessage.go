@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sync"
 )
 
 // BarkServer Bark消息推送(iOS)
@@ -20,21 +19,16 @@ func RegisterBarkServer(barkServer BarkServer) {
 	barkServers = append(barkServers, barkServer)
 }
 
-func SendBarkMessage(message Message) {
+func SendBarkMessage(message *Message) {
 	length := len(barkServers)
 	if length > 0 {
-		wg := sync.WaitGroup{}
 		for i := 0; i < length; i++ {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				sendBarkMessage(barkServers[i], message)
-			}(i)
+			sendBarkMessage(barkServers[i], message)
 		}
 	}
 }
 
-func sendBarkMessage(barkServer BarkServer, message Message) {
+func sendBarkMessage(barkServer BarkServer, message *Message) {
 	if barkServer.BarkSecrets == "" {
 		return
 	}
