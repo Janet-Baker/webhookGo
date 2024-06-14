@@ -32,6 +32,13 @@ func (c *Cache) Get(id string) (int64, bool) {
 	return val, ok
 }
 
+func (c *Cache) Exist(id string) bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	_, ok := c.m[id]
+	return ok
+}
+
 func (c *Cache) Delete(id string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -58,7 +65,7 @@ func (c *Cache) autoCleanup() {
 var idCache = NewAutoCleanupCache()
 
 func registerId(id string) (exist bool) {
-	_, exist = idCache.Get(id)
+	exist = idCache.Exist(id)
 	if exist {
 		return
 	}

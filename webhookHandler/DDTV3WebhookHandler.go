@@ -1,9 +1,9 @@
 package webhookHandler
 
 import (
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fastjson"
-	"io"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -13,8 +13,8 @@ import (
 	"webhookGo/messageSender"
 )
 
-// ddtvTaskRunner 根据响应体内容，执行任务
-func ddtvTaskRunner(content []byte) {
+// ddtv3TaskRunner 根据响应体内容，执行任务
+func ddtv3TaskRunner(content []byte) {
 	log.Trace(string(content))
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -390,29 +390,18 @@ func ddtvTaskRunner(content []byte) {
 	}
 }
 
-// DDTVWebhookHandler 处理 DDTV 的 webhook 请求
-func DDTVWebhookHandler(w http.ResponseWriter, request *http.Request) {
-	// defer request.Body.Close()
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			return
-		}
-	}(request.Body)
-	if request.Method != "POST" {
-		w.WriteHeader(http.StatusBadRequest)
+// DDTV3WebhookHandler 处理 DDTV 的 webhook 请求
+func DDTV3WebhookHandler(c *gin.Context) {
+	// 读取请求内容
+	content, err := c.GetRawData()
+	if err != nil {
+		log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
+		c.Status(http.StatusBadRequest)
 		return
 	}
 	// return 200 at first
-	w.WriteHeader(http.StatusOK)
-
-	// 读取请求内容
-	content, err := io.ReadAll(request.Body)
-	if err != nil {
-		log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
-		return
-	}
-	go ddtvTaskRunner(content)
+	c.Status(http.StatusOK)
+	go ddtv3TaskRunner(content)
 }
 
 var ddtvSettings = make(map[int]Event)

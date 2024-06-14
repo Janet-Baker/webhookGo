@@ -32,7 +32,7 @@ func RegisterWXWorkApp(target WXWorkAppTarget) {
 	wxWorkAppTargets = append(wxWorkAppTargets, target)
 }
 
-func updateAccessToken(app WXWorkAppTarget) error {
+func updateAccessToken(app *WXWorkAppTarget) error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
@@ -78,12 +78,14 @@ func SendWXWorkAppMessage(message *Message) {
 	length := len(wxWorkAppTargets)
 	if length > 0 {
 		for i := 0; i < length; i++ {
-			sendWXWorkAppMessage(wxWorkAppTargets[i], message)
+			go func(i int) {
+				sendWXWorkAppMessage(&(wxWorkAppTargets[i]), message)
+			}(i)
 		}
 	}
 }
 
-func sendWXWorkAppMessage(app WXWorkAppTarget, message *Message) {
+func sendWXWorkAppMessage(app *WXWorkAppTarget, message *Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
 		return
 	}
@@ -119,22 +121,23 @@ func sendWXWorkAppMessage(app WXWorkAppTarget, message *Message) {
 	// 发送请求
 	log.Trace("发送企业微信应用消息 请求地址", targetUrl)
 	resp, err := http.Post(targetUrl, "application/json", &bodyBuffer)
-	defer func(Body io.ReadCloser) {
-		errCloser := Body.Close()
-		if errCloser != nil {
-			log.Error("发送企业微信应用消息 关闭连接失败", errCloser.Error())
-		}
-	}(resp.Body)
 	if err != nil {
 		log.Error("发送企业微信应用消息 请求失败", err.Error())
 		return
 	}
+
 	// 读取响应消息
 	content, errReader := io.ReadAll(resp.Body)
 	if errReader != nil {
 		log.Error("发送企业微信应用消息 读取响应内容失败", errReader.Error())
 		return
 	}
+	defer func(Body io.ReadCloser) {
+		errCloser := Body.Close()
+		if errCloser != nil {
+			log.Error("发送企业微信应用消息 关闭连接失败", errCloser.Error())
+		}
+	}(resp.Body)
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
 	if errOfJsonParser != nil {

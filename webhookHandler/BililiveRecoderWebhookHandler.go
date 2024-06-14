@@ -1,9 +1,9 @@
 package webhookHandler
 
 import (
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fastjson"
-	"io"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -220,27 +220,16 @@ func bililiveRecoderTaskRunner(content []byte) {
 }
 
 // BililiveRecoderWebhookHandler 处理 BililiveRecoder 的 webhook 请求
-func BililiveRecoderWebhookHandler(w http.ResponseWriter, request *http.Request) {
-	// defer request.Body.Close()
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			return
-		}
-	}(request.Body)
-	if request.Method != "POST" {
-		w.WriteHeader(http.StatusBadRequest)
+func BililiveRecoderWebhookHandler(c *gin.Context) {
+	// 读取请求内容
+	content, err := c.GetRawData()
+	if err != nil {
+		log.Error("读取 BililiveRecoder webhook 请求失败：", err.Error())
+		c.Status(http.StatusBadRequest)
 		return
 	}
 	// return 200 at first
-	w.WriteHeader(http.StatusOK)
-
-	// 读取请求内容
-	content, err := io.ReadAll(request.Body)
-	if err != nil {
-		log.Error("读取 BililiveRecoder webhook 请求失败：", err.Error())
-		return
-	}
+	c.Status(http.StatusOK)
 	go bililiveRecoderTaskRunner(content)
 }
 

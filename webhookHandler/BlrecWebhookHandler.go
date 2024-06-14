@@ -1,9 +1,9 @@
 package webhookHandler
 
 import (
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fastjson"
-	"io"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -287,27 +287,15 @@ func blrecTaskRunner(content []byte) {
 }
 
 // BlrecWebhookHandler 处理 blrec 的 webhook 请求
-func BlrecWebhookHandler(w http.ResponseWriter, request *http.Request) {
-	// defer request.Body.Close()
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			return
-		}
-	}(request.Body)
-	if request.Method != "POST" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	// return 200 at first
-	w.WriteHeader(http.StatusOK)
-
+func BlrecWebhookHandler(c *gin.Context) {
 	// 读取请求内容
-	content, err := io.ReadAll(request.Body)
+	content, err := c.GetRawData()
 	if err != nil {
 		log.Error("读取 blrec webhook 请求失败：", err.Error())
+		c.Status(http.StatusBadRequest)
 		return
 	}
+	c.Status(http.StatusOK)
 	go blrecTaskRunner(content)
 }
 

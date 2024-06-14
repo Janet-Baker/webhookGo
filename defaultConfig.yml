@@ -141,7 +141,7 @@ Blrec:
       notify: true
       have_command: false
       exec_command: ""
-DDTV:
+DDTV3:
   enable: true
   path: "/ddtv"
   # 事件种类见 https://ddtv.pro/AdvancedFeatures/Webhook.html#%E4%BA%8B%E4%BB%B6%E7%B1%BB%E5%9E%8B
