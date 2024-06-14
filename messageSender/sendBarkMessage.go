@@ -20,15 +20,20 @@ func RegisterBarkServer(barkServer BarkServer) {
 }
 
 func SendBarkMessage(message *Message) {
+	if message == nil {
+		return
+	}
 	length := len(barkServers)
 	if length > 0 {
 		for i := 0; i < length; i++ {
-			sendBarkMessage(barkServers[i], message)
+			go func(i int) {
+				sendBarkMessage(&(barkServers[i]), message)
+			}(i)
 		}
 	}
 }
 
-func sendBarkMessage(barkServer BarkServer, message *Message) {
+func sendBarkMessage(barkServer *BarkServer, message *Message) {
 	if barkServer.BarkSecrets == "" {
 		return
 	}
@@ -37,16 +42,16 @@ func sendBarkMessage(barkServer BarkServer, message *Message) {
 		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.IconURL)
 	}
 	resp, err := http.Get(sendUrl)
+	if err != nil {
+		log.Error("发送Bark消息失败：%s", err.Error())
+		return
+	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
 		if errCloser != nil {
 			log.Error("发送Bark消息：关闭消息发送响应失败：", errCloser.Error())
 		}
 	}(resp.Body)
-	if err != nil {
-		log.Error("发送Bark消息失败：%s", err.Error())
-		return
-	}
 	if log.IsLevelEnabled(log.TraceLevel) {
 		log.Tracef("发送Bark消息响应：%+v", resp)
 	} else {

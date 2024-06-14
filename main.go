@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 	"webhookGo/terminal"
 	"webhookGo/webhookHandler"
 )
@@ -19,20 +19,28 @@ func init() {
 
 func main() {
 	config := loadConfig()
+	r := gin.Default()
 	if config.bililiveRecoder.enable {
 		log.Info("B站录播姬已启用，监听 http://" + config.listenAddress + config.bililiveRecoder.path)
-		http.HandleFunc(config.bililiveRecoder.path, webhookHandler.BililiveRecoderWebhookHandler)
+		r.POST(config.bililiveRecoder.path, webhookHandler.BililiveRecoderWebhookHandler)
 	}
 	if config.blrec.enable {
 		log.Info("blrec已启用，监听 http://" + config.listenAddress + config.blrec.path)
-		http.HandleFunc(config.blrec.path, webhookHandler.BlrecWebhookHandler)
+		r.POST(config.blrec.path, webhookHandler.BlrecWebhookHandler)
 	}
-	if config.ddtv.enable {
-		log.Info("DDTV已启用，监听 http://" + config.listenAddress + config.ddtv.path)
-		http.HandleFunc(config.ddtv.path, webhookHandler.DDTVWebhookHandler)
+	if config.ddtv3.enable {
+		log.Info("DDTV已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
+		r.POST(config.ddtv3.path, webhookHandler.DDTV3WebhookHandler)
 	}
-	err := http.ListenAndServe(config.listenAddress, nil)
+
+	r.NoRoute(func(c *gin.Context) {
+		log.Warnln("Unknown access to", c.Request.Method, `"`+c.Request.URL.Path+`"`,
+			"\nfrom", c.RemoteIP(), "User-Agent:", c.GetHeader("User-Agent"))
+		c.Status(403)
+	})
+
+	err := r.Run(config.listenAddress)
 	if err != nil {
-		log.Fatalf("监听端口异常，%+v", err)
+		log.Fatal("监听端口异常，", err)
 	}
 }

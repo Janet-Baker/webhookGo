@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"flag"
+	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -19,7 +20,7 @@ type initStruct struct {
 	listenAddress   string
 	bililiveRecoder options
 	blrec           options
-	ddtv            options
+	ddtv3           options
 }
 type ConfigLoader struct {
 	Debug           bool                            `yaml:"debug"`
@@ -37,11 +38,11 @@ type ConfigLoader struct {
 		Path   string                          `yaml:"path"`
 		Events map[string]webhookHandler.Event `yaml:"events"`
 	} `yaml:"Blrec"`
-	DDTV struct {
+	DDTV3 struct {
 		Enable bool                            `yaml:"enable"`
 		Path   string                          `yaml:"path"`
 		Events map[string]webhookHandler.Event `yaml:"events"`
-	} `yaml:"DDTV"`
+	} `yaml:"DDTV3"`
 }
 
 func loadConfig() initStruct {
@@ -69,8 +70,10 @@ func loadConfig() initStruct {
 	if configuration.Debug {
 		log.SetLevel(log.DebugLevel)
 		log.Warnf("已开启Debug模式.")
+	} else {
+		gin.SetMode(gin.ReleaseMode)
 	}
-	if !(configuration.BililiveRecoder.Enable || configuration.Blrec.Enable || configuration.DDTV.Enable) {
+	if !(configuration.BililiveRecoder.Enable || configuration.Blrec.Enable || configuration.DDTV3.Enable) {
 		log.Fatal("没有关注的事件")
 	}
 
@@ -110,7 +113,7 @@ func loadConfig() initStruct {
 			v.Notify = false
 			configuration.BililiveRecoder.Events[k] = v
 		}
-		for k, v := range configuration.DDTV.Events {
+		for k, v := range configuration.DDTV3.Events {
 			v.Notify = false
 			configuration.BililiveRecoder.Events[k] = v
 		}
@@ -128,7 +131,7 @@ func loadConfig() initStruct {
 		listenAddress:   configuration.ListenAddress,
 		bililiveRecoder: options{enable: configuration.BililiveRecoder.Enable, path: configuration.BililiveRecoder.Path},
 		blrec:           options{enable: configuration.Blrec.Enable, path: configuration.Blrec.Path},
-		ddtv:            options{enable: configuration.DDTV.Enable, path: configuration.DDTV.Path},
+		ddtv3:           options{enable: configuration.DDTV3.Enable, path: configuration.DDTV3.Path},
 	}
 	if configuration.BililiveRecoder.Enable {
 		webhookHandler.UpdateBililiveRecoderSettings(configuration.BililiveRecoder.Events)
@@ -136,8 +139,8 @@ func loadConfig() initStruct {
 	if configuration.Blrec.Enable {
 		webhookHandler.UpdateBlrecSettings(configuration.Blrec.Events)
 	}
-	if configuration.DDTV.Enable {
-		webhookHandler.UpdateDDTVSettings(configuration.DDTV.Events)
+	if configuration.DDTV3.Enable {
+		webhookHandler.UpdateDDTVSettings(configuration.DDTV3.Events)
 	}
 	return config
 }
@@ -149,8 +152,8 @@ var defaultConfig []byte
 func writeDefaultConfig(secretFile string) {
 	err := os.WriteFile(secretFile, defaultConfig, 0o644)
 	if err != nil {
-		log.Fatal("写入默认secrets文件失败!", err)
+		log.Fatal("写入默认配置文件失败!", err)
 	} else {
-		log.Warn("写入默认secrets文件成功，请修改配置文件后重启程序。")
+		log.Warn("写入默认配置文件成功，请修改配置文件后重启程序。")
 	}
 }
