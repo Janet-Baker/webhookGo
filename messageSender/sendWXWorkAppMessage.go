@@ -8,13 +8,15 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type wxWorkAppToken struct {
 	sync.Mutex
 	accessToken   string
-	tokenExpireAt int64
+	tokenExpireAt atomic.Int64
+	//tokenExpireAt int64
 }
 
 type WXWorkAppTarget struct {
@@ -68,9 +70,11 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 		return errors.New(string(getter.GetStringBytes("errmsg")))
 	}
 	app.token.accessToken = string(getter.GetStringBytes("access_token"))
-	app.token.tokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
+	app.token.tokenExpireAt.Store(time.Now().Unix() + getter.GetInt64("expires_in"))
+	//atomic.StoreInt64(&app.token.tokenExpireAt, time.Now().Unix()+getter.GetInt64("expires_in"))
+	//app.token.tokenExpireAt = time.Now().Unix() + getter.GetInt64("expires_in")
 	log.Trace("企业微信AccessToken：", app.token.accessToken)
-	log.Debug("企业微信AccessToken有效期至：", app.token.tokenExpireAt)
+	log.Debug("企业微信AccessToken有效期至：", app.token.tokenExpireAt.Load())
 	return nil
 }
 
@@ -90,12 +94,12 @@ func sendWXWorkAppMessage(app *WXWorkAppTarget, message *Message) {
 		return
 	}
 	// 检查token是否过期
-	if time.Now().Unix() > app.token.tokenExpireAt {
+	if time.Now().Unix() > app.token.tokenExpireAt.Load() {
 		func() { // 更新之前需要加锁，防止有线程正在更新
 			app.token.Lock()
 			defer app.token.Unlock()
 			// 再次判断过期时间，防止被其他线程更新过了
-			if time.Now().Unix() > app.token.tokenExpireAt {
+			if time.Now().Unix() > app.token.tokenExpireAt.Load() {
 				err := updateAccessToken(app)
 				if err != nil {
 					return
