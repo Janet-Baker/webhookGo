@@ -32,14 +32,16 @@ func (message *OldMessageToRefactor) GetIconURL() string {
 	return message.IconURL
 }
 
-func (m *OldMessageToRefactor) SendToAllTargets() {
+func (message *OldMessageToRefactor) SendToAllTargets() {
 	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Tracef("发送消息：%+v", *m)
+		log.Tracef("发送消息：%+v", *message)
 	}
 
 	// 并发发送消息
 	for i := 0; i < len(servers); i++ {
-		go servers[i].SendMessage(m)
+		go func(i int) {
+			servers[i].SendMessage(message)
+		}(i)
 	}
 	return
 }
