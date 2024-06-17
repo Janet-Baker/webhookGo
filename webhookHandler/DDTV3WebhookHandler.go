@@ -62,12 +62,12 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 开播时间：")
 			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("room_Info", "live_time"), 0).Local().Format("2006-01-02 15:04:05"))
 			// 发送消息
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -109,53 +109,26 @@ func ddtv3TaskRunner(content []byte) {
 				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 			}
 			// 发送消息
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
 	//	2 StartRec 开始录制
-	case 2:
-		fallthrough
-
 	//	3 RecComplete 录制结束
-	case 3:
-		fallthrough
-
 	//	4 CancelRec 录制被取消
-	case 4:
-		fallthrough
-
 	//	5 TranscodingComplete 完成转码
-	case 5:
-		fallthrough
-
 	//	6 SaveDanmuComplete 保存弹幕文件完成
-	case 6:
-		fallthrough
-
 	//	7 SaveSCComplete 保存SC文件完成
-	case 7:
-		fallthrough
-
 	//	8 SaveGiftComplete 保存礼物文件完成
-	case 8:
-		fallthrough
-
 	//	9 SaveGuardComplete 保存大航海文件完成
-	case 9:
-		fallthrough
-
 	//	17 WarnedByAdmin 被管理员警告
-	case 17:
-		fallthrough
-
 	//	18 LiveCutOff 直播被管理员切断
-	case 18:
+	case 2, 3, 4, 5, 6, 7, 8, 9, 17, 18:
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
@@ -182,21 +155,18 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
 	//	10 RunShellComplete 执行Shell命令完成
-	case 10:
-		fallthrough
-
 	//	16 ShellExecutionComplete 执行Shell命令结束
-	case 16:
+	case 10, 16:
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
@@ -229,12 +199,12 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.WriteString("- 命令：")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "Shell"))
 			// 发送消息
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -273,21 +243,18 @@ func ddtv3TaskRunner(content []byte) {
 			} else {
 				msgTitleBuilder.WriteString(" 录制完成")
 			}
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
 	//	12 SpaceIsInsufficientWarn 剩余空间不足
-	case 12:
-		fallthrough
-
 	//	14 LoginWillExpireSoon 登陆即将失效
-	case 14:
+	case 12, 14:
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
@@ -297,11 +264,11 @@ func ddtv3TaskRunner(content []byte) {
 			log.Warn(logBuilder.String())
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "DDTV " + idEventNameMap[eventType],
 				Content: string(content),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -311,11 +278,11 @@ func ddtv3TaskRunner(content []byte) {
 			log.Error("DDTV 登录失效")
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "DDTV 登录失效",
 				Content: string(content),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -328,11 +295,11 @@ func ddtv3TaskRunner(content []byte) {
 			log.Info(logBuilder.String())
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "DDTV 有可用新版本",
 				Content: string(content),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -363,12 +330,12 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 			msgContentBuilder.WriteString("\n- 封禁到：")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "lock_till"))
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 

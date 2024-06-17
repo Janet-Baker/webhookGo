@@ -61,12 +61,12 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 开播时间：")
 			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("data", "room_info", "live_start_time"), 0).Local().Format("2006-01-02 15:04:05"))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -105,29 +105,20 @@ func blrecTaskRunner(content []byte) {
 				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 			}
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
 	// RoomChangeEvent 直播间信息改变
-	case "RoomChangeEvent":
-		fallthrough
-
 	// RecordingStartedEvent 录制开始
-	case "RecordingStartedEvent":
-		fallthrough
-
 	// RecordingFinishedEvent 录制结束
-	case "RecordingFinishedEvent":
-		fallthrough
-
 	// RecordingCancelledEvent 录制取消
-	case "RecordingCancelledEvent":
+	case "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("blrec ")
@@ -153,41 +144,23 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "area_name"))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
 	// VideoFileCreatedEvent 视频文件创建
-	case "VideoFileCreatedEvent":
-		fallthrough
-
 	// VideoFileCompletedEvent 视频文件完成
-	case "VideoFileCompletedEvent":
-		fallthrough
-
 	// DanmakuFileCreatedEvent 弹幕文件创建
-	case "DanmakuFileCreatedEvent":
-		fallthrough
-
 	// DanmakuFileCompletedEvent 弹幕文件完成
-	case "DanmakuFileCompletedEvent":
-		fallthrough
-
 	// RawDanmakuFileCreatedEvent 原始弹幕文件创建
-	case "RawDanmakuFileCreatedEvent":
-		fallthrough
-
 	// RawDanmakuFileCompletedEvent 原始弹幕文件完成
-	case "RawDanmakuFileCompletedEvent":
-		fallthrough
-
 	// VideoPostprocessingCompletedEvent 视频后处理完成
-	case "VideoPostprocessingCompletedEvent":
+	case "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "VideoPostprocessingCompletedEvent":
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("blrec ")
@@ -208,12 +181,12 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "duration"), 10))
 			msgContentBuilder.WriteString(" 秒")
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("data", "room_id")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -240,11 +213,11 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 可用空间：")
 			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "blrec 硬盘空间不足",
 				Content: msgContentBuilder.String(),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -261,11 +234,11 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("```json\n")
 			msgContentBuilder.Write(getter.GetStringBytes("data"))
 			msgContentBuilder.WriteString("\n```")
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "blrec 程序出现异常",
 				Content: msgContentBuilder.String(),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 

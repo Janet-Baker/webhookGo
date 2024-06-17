@@ -13,27 +13,14 @@ type BarkServer struct {
 	BarkSecrets string `yaml:"secrets"`
 }
 
-var barkServers []BarkServer
-
-func RegisterBarkServer(barkServer BarkServer) {
-	barkServers = append(barkServers, barkServer)
+func (barkServer *BarkServer) RegisterBarkServer() {
+	RegisterMessageServer(barkServer)
 }
 
-func SendBarkMessage(message *Message) {
+func (barkServer *BarkServer) SendMessage(message *OldMessageToRefactor) {
 	if message == nil {
 		return
 	}
-	length := len(barkServers)
-	if length > 0 {
-		for i := 0; i < length; i++ {
-			go func(i int) {
-				sendBarkMessage(&(barkServers[i]), message)
-			}(i)
-		}
-	}
-}
-
-func sendBarkMessage(barkServer *BarkServer, message *Message) {
 	if barkServer.BarkSecrets == "" {
 		return
 	}

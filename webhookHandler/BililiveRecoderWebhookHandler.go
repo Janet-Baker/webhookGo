@@ -67,12 +67,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -112,12 +112,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 				}
 			}
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 
@@ -149,12 +149,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 文件打开时间：")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileOpenTime"))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   "B站录播姬 文件打开",
 				Content: msgContentBuilder.String(),
 				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 	//文件关闭 FileClosed
 	case "FileClosed":
@@ -193,12 +193,12 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 文件关闭时间：")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileCloseTime"))
 
-			var msg = messageSender.Message{
+			var msg = messageSender.OldMessageToRefactor{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
 			}
-			msg.Send()
+			msg.SendToAllTargets()
 		}
 		break
 

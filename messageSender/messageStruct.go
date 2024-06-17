@@ -4,7 +4,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Message struct {
+type Message interface {
+	GetTitle() string
+	GetContent() string
+	GetIconURL() string
+	SendToAllTargets()
+}
+
+type OldMessageToRefactor struct {
 	// 消息标题
 	Title string
 	// 消息内容
@@ -13,20 +20,40 @@ type Message struct {
 	IconURL string
 }
 
-func (m *Message) Send() {
+func (message *OldMessageToRefactor) GetTitle() string {
+	return message.Title
+}
+
+func (message *OldMessageToRefactor) GetContent() string {
+	return message.Content
+}
+
+func (message *OldMessageToRefactor) GetIconURL() string {
+	return message.IconURL
+}
+
+func (m *OldMessageToRefactor) SendToAllTargets() {
 	if log.IsLevelEnabled(log.TraceLevel) {
 		log.Tracef("发送消息：%+v", *m)
 	}
 
 	// 并发发送消息
-	// 发送 Bark 消息
-	go func() {
-		SendBarkMessage(m)
-	}()
-	// 发送企业微信应用消息
-	go func() {
-		SendWXWorkAppMessage(m)
-	}()
-
+	for i := 0; i < len(servers); i++ {
+		go servers[i].SendMessage(m)
+	}
 	return
+}
+
+type MessageServer interface {
+	SendMessage(message *OldMessageToRefactor)
+}
+
+var servers []MessageServer
+
+func GetAllServers() []MessageServer {
+	return servers
+}
+
+func RegisterMessageServer(server MessageServer) {
+	servers = append(servers, server)
 }

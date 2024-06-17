@@ -27,11 +27,9 @@ type WXWorkAppTarget struct {
 	token     *wxWorkAppToken
 }
 
-var wxWorkAppTargets []WXWorkAppTarget
-
-func RegisterWXWorkApp(target WXWorkAppTarget) {
-	target.token = new(wxWorkAppToken)
-	wxWorkAppTargets = append(wxWorkAppTargets, target)
+func (app *WXWorkAppTarget) RegisterWXWorkApp() {
+	app.token = new(wxWorkAppToken)
+	RegisterMessageServer(app)
 }
 
 func updateAccessToken(app *WXWorkAppTarget) error {
@@ -78,18 +76,10 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 	return nil
 }
 
-func SendWXWorkAppMessage(message *Message) {
-	length := len(wxWorkAppTargets)
-	if length > 0 {
-		for i := 0; i < length; i++ {
-			go func(i int) {
-				sendWXWorkAppMessage(&(wxWorkAppTargets[i]), message)
-			}(i)
-		}
+func (app *WXWorkAppTarget) SendMessage(message *OldMessageToRefactor) {
+	if message == nil {
+		return
 	}
-}
-
-func sendWXWorkAppMessage(app *WXWorkAppTarget, message *Message) {
 	if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
 		return
 	}
