@@ -22,6 +22,10 @@ func ddtv3TaskRunner(content []byte) {
 		return
 	}
 	webhookId := string(getter.GetStringBytes("id"))
+	if len(webhookId) < 36 {
+		log.Warnln("DDTV webhook 请求的 id 读取失败", webhookId)
+		return
+	}
 	log.Debug(webhookId + " 收到 DDTV webhook 请求")
 
 	// 判断是否是重复的webhook请求

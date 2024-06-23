@@ -47,7 +47,7 @@ func (message *OldMessageToRefactor) SendToAllTargets() {
 }
 
 type MessageServer interface {
-	SendMessage(message *OldMessageToRefactor)
+	SendMessage(message Message)
 }
 
 var servers []MessageServer

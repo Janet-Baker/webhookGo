@@ -76,7 +76,7 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 	return nil
 }
 
-func (app *WXWorkAppTarget) SendMessage(message *OldMessageToRefactor) {
+func (app *WXWorkAppTarget) SendMessage(message Message) {
 	if message == nil {
 		return
 	}
@@ -104,9 +104,9 @@ func (app *WXWorkAppTarget) SendMessage(message *OldMessageToRefactor) {
 	bodyBuffer.WriteString(`","msgtype":"markdown","agentid":"`)
 	bodyBuffer.WriteString(app.AgentID)
 	bodyBuffer.WriteString(`","markdown":{"content":"# `)
-	bodyBuffer.WriteString(message.Title)
+	bodyBuffer.WriteString(message.GetTitle())
 	bodyBuffer.WriteString("\n")
-	bodyBuffer.WriteString(message.Content)
+	bodyBuffer.WriteString(message.GetContent())
 	bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
 
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=

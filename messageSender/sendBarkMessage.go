@@ -17,16 +17,16 @@ func (barkServer *BarkServer) RegisterBarkServer() {
 	RegisterMessageServer(barkServer)
 }
 
-func (barkServer *BarkServer) SendMessage(message *OldMessageToRefactor) {
+func (barkServer *BarkServer) SendMessage(message Message) {
 	if message == nil {
 		return
 	}
 	if barkServer.BarkSecrets == "" {
 		return
 	}
-	sendUrl := barkServer.ServerUrl + barkServer.BarkSecrets + "/" + url.QueryEscape(message.Title) + "/" + url.QueryEscape(message.Content)
-	if message.IconURL != "" {
-		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.IconURL)
+	sendUrl := barkServer.ServerUrl + barkServer.BarkSecrets + "/" + url.QueryEscape(message.GetTitle()) + "/" + url.QueryEscape(message.GetContent())
+	if message.GetTitle() != "" {
+		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.GetIconURL())
 	}
 	resp, err := http.Get(sendUrl)
 	if err != nil {

@@ -13,7 +13,6 @@ import (
 	"webhookGo/messageSender"
 )
 
-// bililiveRecoderTaskRunner 根据响应体内容，执行任务
 func bililiveRecoderTaskRunner(content []byte) {
 	log.Trace(string(content))
 	var p fastjson.Parser
@@ -22,6 +21,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 		return
 	}
 	webhookId := string(getter.GetStringBytes("EventId"))
+	if len(webhookId) < 36 {
+		log.Warnln("BililiveRecoder webhook 请求的 EventId 读取失败", webhookId)
+		return
+	}
 	log.Debug(webhookId, "收到 BililiveRecoder webhook 请求")
 
 	// 判断是否是重复的webhook请求
