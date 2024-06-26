@@ -65,7 +65,7 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 开播时间：")
 			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("data", "room_info", "live_start_time"), 0).Local().Format("2006-01-02 15:04:05"))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
@@ -87,7 +87,7 @@ func blrecTaskRunner(content []byte) {
 			// 构造消息
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("data", "room_info", "room_id"))
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetInt64("data", "room_info", "room_id"))
 			if isRoomLocked {
 				msgTitleBuilder.WriteString(" 直播间被封禁")
 			} else {
@@ -109,7 +109,7 @@ func blrecTaskRunner(content []byte) {
 				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 			}
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
@@ -148,7 +148,7 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "area_name"))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
@@ -185,10 +185,10 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "duration"), 10))
 			msgContentBuilder.WriteString(" 秒")
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("data", "room_id")),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("data", "room_id")),
 			}
 			msg.SendToAllTargets()
 		}
@@ -217,7 +217,7 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 可用空间：")
 			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   "blrec 硬盘空间不足",
 				Content: msgContentBuilder.String(),
 			}
@@ -238,7 +238,7 @@ func blrecTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("```json\n")
 			msgContentBuilder.Write(getter.GetStringBytes("data"))
 			msgContentBuilder.WriteString("\n```")
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   "blrec 程序出现异常",
 				Content: msgContentBuilder.String(),
 			}

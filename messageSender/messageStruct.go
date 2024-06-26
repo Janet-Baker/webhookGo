@@ -11,7 +11,7 @@ type Message interface {
 	SendToAllTargets()
 }
 
-type OldMessageToRefactor struct {
+type GeneralPushMessage struct {
 	// 消息标题
 	Title string
 	// 消息内容
@@ -20,19 +20,19 @@ type OldMessageToRefactor struct {
 	IconURL string
 }
 
-func (message *OldMessageToRefactor) GetTitle() string {
+func (message *GeneralPushMessage) GetTitle() string {
 	return message.Title
 }
 
-func (message *OldMessageToRefactor) GetContent() string {
+func (message *GeneralPushMessage) GetContent() string {
 	return message.Content
 }
 
-func (message *OldMessageToRefactor) GetIconURL() string {
+func (message *GeneralPushMessage) GetIconURL() string {
 	return message.IconURL
 }
 
-func (message *OldMessageToRefactor) SendToAllTargets() {
+func (message *GeneralPushMessage) SendToAllTargets() {
 	if log.IsLevelEnabled(log.TraceLevel) {
 		log.Tracef("发送消息：%+v", *message)
 	}

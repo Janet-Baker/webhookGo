@@ -70,10 +70,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "AreaNameChild"))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("EventData", "RoomId")),
 			}
 			msg.SendToAllTargets()
 		}
@@ -91,7 +91,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 		if eventSettings.Notify {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("EventData", "RoomId"))
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetInt64("EventData", "RoomId"))
 			if isRoomLocked {
 				msgTitleBuilder.WriteString(" 直播间被封禁")
 			} else {
@@ -115,10 +115,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 				}
 			}
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("EventData", "RoomId")),
 			}
 			msg.SendToAllTargets()
 		}
@@ -152,10 +152,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 文件打开时间：")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileOpenTime"))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   "B站录播姬 文件打开",
 				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("EventData", "RoomId")),
 			}
 			msg.SendToAllTargets()
 		}
@@ -196,10 +196,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 文件关闭时间：")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "FileCloseTime"))
 
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetUint64("EventData", "RoomId")),
+				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("EventData", "RoomId")),
 			}
 			msg.SendToAllTargets()
 		}

@@ -35,13 +35,13 @@ func ddtv3TaskRunner(content []byte) {
 
 	// 判断事件类型
 	eventType := getter.GetInt("type")
-	eventSettings, _ := ddtvSettings[eventType]
+	eventSettings, _ := ddtv3Settings[eventType]
 	switch eventType {
 	//	0 StartLive 主播开播
 	case 0:
 		if eventSettings.Care {
 			var logBuilder strings.Builder
-			logBuilder.WriteString("DDTV 主播开播：")
+			logBuilder.WriteString("DDTV3 主播开播：")
 			logBuilder.Write(getter.GetStringBytes("user_info", "name"))
 			log.Info(logBuilder.String())
 		}
@@ -66,7 +66,7 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.WriteString("\n- 开播时间：")
 			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("room_Info", "live_time"), 0).Local().Format("2006-01-02 15:04:05"))
 			// 发送消息
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -88,7 +88,7 @@ func ddtv3TaskRunner(content []byte) {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			// 封禁检测
-			isLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"))
+			isLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetInt64("room_Info", "room_id"))
 			if isLocked {
 				// 主播被封号了
 				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
@@ -113,7 +113,7 @@ func ddtv3TaskRunner(content []byte) {
 				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
 			}
 			// 发送消息
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -136,7 +136,7 @@ func ddtv3TaskRunner(content []byte) {
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
-			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString(ddtv3IdEventNameMap[eventType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			log.Info(logBuilder.String())
@@ -146,7 +146,7 @@ func ddtv3TaskRunner(content []byte) {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			msgTitleBuilder.WriteString(" ")
-			msgTitleBuilder.WriteString(idEventNameMap[eventType])
+			msgTitleBuilder.WriteString(ddtv3IdEventNameMap[eventType])
 			// 构造消息内容
 			var msgContentBuilder strings.Builder
 			msgContentBuilder.WriteString("- 主播：[")
@@ -159,7 +159,7 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_parent_name"))
 			msgContentBuilder.WriteString(" - ")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -174,7 +174,7 @@ func ddtv3TaskRunner(content []byte) {
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
-			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString(ddtv3IdEventNameMap[eventType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("room_Info", "Shell"))
 			log.Info(logBuilder.String())
@@ -184,7 +184,7 @@ func ddtv3TaskRunner(content []byte) {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			msgTitleBuilder.WriteString(" ")
-			msgTitleBuilder.WriteString(idEventNameMap[eventType])
+			msgTitleBuilder.WriteString(ddtv3IdEventNameMap[eventType])
 			// 构造消息内容
 			var msgContentBuilder strings.Builder
 			if string(getter.GetStringBytes("room_Info", "uname")) != "" {
@@ -203,7 +203,7 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.WriteString("- 命令：")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "Shell"))
 			// 发送消息
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -238,7 +238,7 @@ func ddtv3TaskRunner(content []byte) {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("room_Info", "uname"))
 			// 判断是否是封禁
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetUint64("room_Info", "room_id"))
+			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetInt64("room_Info", "room_id"))
 			if isRoomLocked {
 				// 主播被封号了
 				msgTitleBuilder.WriteString(" 喜提直播间封禁！")
@@ -247,7 +247,7 @@ func ddtv3TaskRunner(content []byte) {
 			} else {
 				msgTitleBuilder.WriteString(" 录制完成")
 			}
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -262,14 +262,14 @@ func ddtv3TaskRunner(content []byte) {
 		if eventSettings.Care {
 			var logBuilder strings.Builder
 			logBuilder.WriteString("DDTV ")
-			logBuilder.WriteString(idEventNameMap[eventType])
+			logBuilder.WriteString(ddtv3IdEventNameMap[eventType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(content)
 			log.Warn(logBuilder.String())
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.OldMessageToRefactor{
-				Title:   "DDTV " + idEventNameMap[eventType],
+			var msg = messageSender.GeneralPushMessage{
+				Title:   "DDTV " + ddtv3IdEventNameMap[eventType],
 				Content: string(content),
 			}
 			msg.SendToAllTargets()
@@ -282,7 +282,7 @@ func ddtv3TaskRunner(content []byte) {
 			log.Error("DDTV 登录失效")
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   "DDTV 登录失效",
 				Content: string(content),
 			}
@@ -299,7 +299,7 @@ func ddtv3TaskRunner(content []byte) {
 			log.Info(logBuilder.String())
 		}
 		if eventSettings.Notify {
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   "DDTV 有可用新版本",
 				Content: string(content),
 			}
@@ -334,7 +334,7 @@ func ddtv3TaskRunner(content []byte) {
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "area_v2_name"))
 			msgContentBuilder.WriteString("\n- 封禁到：")
 			msgContentBuilder.Write(getter.GetStringBytes("room_Info", "lock_till"))
-			var msg = messageSender.OldMessageToRefactor{
+			var msg = messageSender.GeneralPushMessage{
 				Title:   msgTitleBuilder.String(),
 				Content: msgContentBuilder.String(),
 				IconURL: string(getter.GetStringBytes("user_info", "face")),
@@ -366,7 +366,7 @@ func DDTV3WebhookHandler(c *gin.Context) {
 	// 读取请求内容
 	content, err := c.GetRawData()
 	if err != nil {
-		log.Errorf("读取 DDTV webhook 请求失败：%s", err.Error())
+		log.Errorf("读取 DDTV3 webhook 请求失败：%s", err.Error())
 		c.Status(http.StatusBadRequest)
 		return
 	}
@@ -375,8 +375,8 @@ func DDTV3WebhookHandler(c *gin.Context) {
 	go ddtv3TaskRunner(content)
 }
 
-var ddtvSettings = make(map[int]Event)
-var idEventTitleMap = map[int]string{
+var ddtv3Settings = make(map[int]Event)
+var ddtv3IdEventTitleMap = map[int]string{
 	0:  "StartLive",
 	1:  "StopLive",
 	2:  "StartRec",
@@ -398,7 +398,7 @@ var idEventTitleMap = map[int]string{
 	18: "LiveCutOff",
 	19: "RoomLocked",
 }
-var idEventNameMap = map[int]string{
+var ddtv3IdEventNameMap = map[int]string{
 	0:  "主播开播",
 	1:  "主播下播",
 	2:  "开始录制",
@@ -421,11 +421,11 @@ var idEventNameMap = map[int]string{
 	19: "直播间被封禁",
 }
 
-func UpdateDDTVSettings(events map[string]Event) {
-	for id, name := range idEventTitleMap {
+func UpdateDDTV3Settings(events map[string]Event) {
+	for id, name := range ddtv3IdEventTitleMap {
 		event, ok := events[name]
 		if ok {
-			ddtvSettings[id] = event
+			ddtv3Settings[id] = event
 		}
 	}
 }

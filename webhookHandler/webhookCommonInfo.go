@@ -8,7 +8,7 @@ import (
 
 type Cache struct {
 	m     map[string]int64
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 func NewAutoCleanupCache() *Cache {
@@ -33,8 +33,8 @@ func (c *Cache) Get(id string) (int64, bool) {
 }
 
 func (c *Cache) Exist(id string) bool {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	_, ok := c.m[id]
 	return ok
 }
@@ -69,6 +69,7 @@ func registerId(id string) (exist bool) {
 	if exist {
 		return
 	}
+
 	idCache.Add(id)
 	return
 }
@@ -80,10 +81,11 @@ type Event struct {
 	ExecCommand string `yaml:"exec_command"`
 }
 
+// 定义一个字符串数组，表示不同的单位
+var units = []string{"B", "KB", "MB", "GB", "TB"}
+
 // 定义一个函数，接受一个整数参数，表示字节数
 func formatStorageSpace(bytes int64) string {
-	// 定义一个字符串数组，表示不同的单位
-	units := []string{"B", "KB", "MB", "GB", "TB"}
 	// 定义一个变量，表示当前的单位索引
 	index := 0
 	// 定义一个浮点数变量，表示当前的字节数

@@ -43,6 +43,11 @@ type ConfigLoader struct {
 		Path   string                          `yaml:"path"`
 		Events map[string]webhookHandler.Event `yaml:"events"`
 	} `yaml:"DDTV3"`
+	DDTV5 struct {
+		Enable bool                            `yaml:"enable"`
+		Path   string                          `yaml:"path"`
+		Events map[string]webhookHandler.Event `yaml:"events"`
+	} `yaml:"DDTV5"`
 }
 
 func loadConfig() initStruct {
@@ -117,6 +122,10 @@ func loadConfig() initStruct {
 			v.Notify = false
 			configuration.BililiveRecoder.Events[k] = v
 		}
+		for k, v := range configuration.DDTV5.Events {
+			v.Notify = false
+			configuration.BililiveRecoder.Events[k] = v
+		}
 	}
 
 	if configuration.ListenAddress == "" {
@@ -140,7 +149,10 @@ func loadConfig() initStruct {
 		webhookHandler.UpdateBlrecSettings(configuration.Blrec.Events)
 	}
 	if configuration.DDTV3.Enable {
-		webhookHandler.UpdateDDTVSettings(configuration.DDTV3.Events)
+		webhookHandler.UpdateDDTV3Settings(configuration.DDTV3.Events)
+	}
+	if configuration.DDTV5.Enable {
+		webhookHandler.UpdateDDTV5Settings(configuration.DDTV5.Events)
 	}
 	return config
 }

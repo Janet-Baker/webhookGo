@@ -143,7 +143,7 @@ Blrec:
       exec_command: ""
 DDTV3:
   enable: true
-  path: "/ddtv"
+  path: "/ddtv3"
   # 事件种类见 https://ddtv.pro/AdvancedFeatures/Webhook.html#%E4%BA%8B%E4%BB%B6%E7%B1%BB%E5%9E%8B
   events:
     StartLive:
@@ -246,3 +246,197 @@ DDTV3:
       notify: true
       have_command: false
       exec_command: ""
+DDTV5:
+    enable: true
+    path: "/ddtv5"
+    events:
+      ReadingConfigurationFile:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UpdateToConfigurationFile:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ReadingRoomFiles:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UpdateToRoomFile:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ModifyConfiguration:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UpdateDetect:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SuccessfullyAddedRoom:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      FailedToAddRoomConfiguration:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ModifyRoomBulletScreenConfiguration:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ModifyRoomPromptConfiguration:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ManuallyTriggeringRecordingTasks:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SuccessfullyDeletedRoom:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      FailedToDeleteRoom:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      CancelRecordingSuccessful:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      CancelRecordingFail:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SuccessfullyTriggeredQuickCut:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      TriggerQuickCutFail:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SuccessfullyAddedRecordingTask:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      FailedToAddRecordingTask:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UserConsentAgreement:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UserDoesNotAgreeToAgreement:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      TriggerLoginAgain:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      LoginSuccessful:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      UpdateLoginStateCache:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      InvalidLoginStatus:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      ScanCodeConfirmation:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      QrCodeWaitingForScann:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ScannedCodeWaitingForConfirmation:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      QrCodeExpir:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SaveBulletScreenFile:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      StartLiveEvent:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      StartBroadcastingReminder:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      StartRecording:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RecordingEnd:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      StopLiveEvent:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      Reconnect:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      HlsTaskStart:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      FlvTaskStart:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""

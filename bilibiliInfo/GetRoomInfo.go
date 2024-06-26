@@ -1,12 +1,13 @@
 package bilibiliInfo
 
 import (
+	"encoding/json"
 	"errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -14,14 +15,14 @@ var ContactBilibili = true
 
 // 请求相关
 var tr = &http.Transport{
-	ForceAttemptHTTP2:     true,
+	// ForceAttemptHTTP2:     true,
 	MaxIdleConns:          8,
 	IdleConnTimeout:       10 * time.Second,
 	TLSHandshakeTimeout:   10 * time.Second,
 	ExpectContinueTimeout: 1 * time.Second,
 	Proxy:                 http.ProxyFromEnvironment,
 	// 不需要 Keep alive
-	DisableKeepAlives: true,
+	// DisableKeepAlives: true,
 	// 因为没有处理压缩，所以禁用掉
 	DisableCompression: true,
 }
@@ -29,15 +30,6 @@ var BiliBiliClient = &http.Client{
 	Transport: tr,
 	Timeout:   10 * time.Second,
 }
-
-// 数据缓存相关
-var (
-	// avatarDict = map[uid]avatar 根据uid存储头像
-	avatarDict = make(map[uint64]string)
-
-	// roomidUidDict = map[roomid]uid 根据roomid存储uid
-	roomidUidDict = make(map[uint64]uint64)
-)
 
 // reqHeaderSetter 设置请求头
 func reqHeaderSetter(header *http.Header) {
@@ -62,133 +54,481 @@ func reqHeaderSetter(header *http.Header) {
 	header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.55")
 	return
 }
+func getAndUnmarshal(url string, v any) error {
+	req, errRequest := http.NewRequest("GET", url, nil)
+	if errRequest != nil {
+		log.Error("请求失败", errRequest.Error())
+		return errRequest
+	}
+	reqHeaderSetter(&req.Header)
+	// 发起请求
+	resp, err := BiliBiliClient.Do(req)
+	if err != nil {
+		log.Error("请求失败", err.Error())
+		return err
+	}
+	defer func(Body io.ReadCloser) {
+		errCloser := Body.Close()
+		if errCloser != nil {
+			log.Error("关闭消息发送响应失败", errCloser.Error())
+		}
+	}(resp.Body)
+	// 读取请求
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("读取响应消息失败", err.Error())
+		return err
+	}
+	log.Trace("响应", content)
+
+	err = json.Unmarshal(content, v)
+	if err != nil {
+		log.Error("解析失败", err.Error())
+		return err
+	}
+	return nil
+}
+
+type RoomInit struct {
+	lastUpdate int64
+	rwMutex    *sync.RWMutex
+	Code       int    `json:"code"`
+	Msg        string `json:"msg"`
+	Message    string `json:"message"`
+	Data       struct {
+		RoomId      int64 `json:"room_id"`
+		ShortId     int   `json:"short_id"`
+		Uid         int64 `json:"uid"`
+		NeedP2P     int   `json:"need_p2p"`
+		IsHidden    bool  `json:"is_hidden"`
+		IsLocked    bool  `json:"is_locked"`
+		IsPortrait  bool  `json:"is_portrait"`
+		LiveStatus  int   `json:"live_status"`
+		HiddenTill  int   `json:"hidden_till"`
+		LockTill    int64 `json:"lock_till"`
+		Encrypted   bool  `json:"encrypted"`
+		PwdVerified bool  `json:"pwd_verified"`
+		LiveTime    int64 `json:"live_time"`
+		RoomShield  int   `json:"room_shield"`
+		IsSp        int   `json:"is_sp"`
+		SpecialType int   `json:"special_type"`
+	} `json:"data"`
+}
+type MasterInfo struct {
+	lastUpdate int64
+	rwMutex    *sync.RWMutex
+	Code       int    `json:"code"`
+	Msg        string `json:"msg"`
+	Message    string `json:"message"`
+	Data       struct {
+		Info struct {
+			Uid            int64  `json:"uid"`
+			Uname          string `json:"uname"`
+			Face           string `json:"face"`
+			OfficialVerify struct {
+				Type int    `json:"type"`
+				Desc string `json:"desc"`
+			} `json:"official_verify"`
+			Gender int `json:"gender"`
+		} `json:"info"`
+		Exp struct {
+			MasterLevel struct {
+				Level   int   `json:"level"`
+				Color   int   `json:"color"`
+				Current []int `json:"current"`
+				Next    []int `json:"next"`
+			} `json:"master_level"`
+		} `json:"exp"`
+		FollowerNum  int    `json:"follower_num"`
+		RoomId       int64  `json:"room_id"`
+		MedalName    string `json:"medal_name"`
+		GloryCount   int    `json:"glory_count"`
+		Pendant      string `json:"pendant"`
+		LinkGroupNum int    `json:"link_group_num"`
+		RoomNews     struct {
+			Content   string `json:"content"`
+			Ctime     string `json:"ctime"`
+			CtimeText string `json:"ctime_text"`
+		} `json:"room_news"`
+	} `json:"data"`
+}
+type GetInfo struct {
+	lastUpdate int64
+	rwMutex    *sync.RWMutex
+	Code       int    `json:"code"`
+	Msg        string `json:"msg"`
+	Message    string `json:"message"`
+	Data       struct {
+		Uid              int64    `json:"uid"`
+		RoomId           int64    `json:"room_id"`
+		ShortId          int      `json:"short_id"`
+		Attention        int      `json:"attention"`
+		Online           int      `json:"online"`
+		IsPortrait       bool     `json:"is_portrait"`
+		Description      string   `json:"description"`
+		LiveStatus       int      `json:"live_status"`
+		AreaId           int      `json:"area_id"`
+		ParentAreaId     int      `json:"parent_area_id"`
+		ParentAreaName   string   `json:"parent_area_name"`
+		OldAreaId        int      `json:"old_area_id"`
+		Background       string   `json:"background"`
+		Title            string   `json:"title"`
+		UserCover        string   `json:"user_cover"`
+		Keyframe         string   `json:"keyframe"`
+		IsStrictRoom     bool     `json:"is_strict_room"`
+		LiveTime         string   `json:"live_time"`
+		Tags             string   `json:"tags"`
+		IsAnchor         int      `json:"is_anchor"`
+		RoomSilentType   string   `json:"room_silent_type"`
+		RoomSilentLevel  int      `json:"room_silent_level"`
+		RoomSilentSecond int64    `json:"room_silent_second"`
+		AreaName         string   `json:"area_name"`
+		Pendants         string   `json:"pendants"`
+		AreaPendants     string   `json:"area_pendants"`
+		HotWords         []string `json:"hot_words"`
+		HotWordsStatus   int      `json:"hot_words_status"`
+		Verify           string   `json:"verify"`
+		NewPendants      struct {
+			Frame struct {
+				Name       string `json:"name"`
+				Value      string `json:"value"`
+				Position   int    `json:"position"`
+				Desc       string `json:"desc"`
+				Area       int    `json:"area"`
+				AreaOld    int    `json:"area_old"`
+				BgColor    string `json:"bg_color"`
+				BgPic      string `json:"bg_pic"`
+				UseOldArea bool   `json:"use_old_area"`
+			} `json:"frame"`
+			Badge struct {
+				Name     string `json:"name"`
+				Position int    `json:"position"`
+				Value    string `json:"value"`
+				Desc     string `json:"desc"`
+			} `json:"badge"`
+			MobileFrame struct {
+				Name       string `json:"name"`
+				Value      string `json:"value"`
+				Position   int    `json:"position"`
+				Desc       string `json:"desc"`
+				Area       int    `json:"area"`
+				AreaOld    int    `json:"area_old"`
+				BgColor    string `json:"bg_color"`
+				BgPic      string `json:"bg_pic"`
+				UseOldArea bool   `json:"use_old_area"`
+			} `json:"mobile_frame"`
+			MobileBadge struct {
+				Name     string `json:"name"`
+				Position int    `json:"position"`
+				Value    string `json:"value"`
+				Desc     string `json:"desc"`
+			} `json:"mobile_badge"`
+		} `json:"new_pendants"`
+		UpSession            string `json:"up_session"`
+		PkStatus             int    `json:"pk_status"`
+		PkId                 int    `json:"pk_id"`
+		BattleId             int    `json:"battle_id"`
+		AllowChangeAreaTime  int    `json:"allow_change_area_time"`
+		AllowUploadCoverTime int    `json:"allow_upload_cover_time"`
+		StudioInfo           struct {
+			Status     int           `json:"status"`
+			MasterList []interface{} `json:"master_list"`
+		} `json:"studio_info"`
+	} `json:"data"`
+}
+
+// 数据缓存相关
+var (
+	// avatarDict = map[uid]avatar 根据uid存储头像
+	avatarDict = sync.Map{}
+	// roomidUidDict = map[roomid]uid 根据roomid存储uid
+	roomidUidDict      = sync.Map{}
+	newGetInfoApiLock  = sync.Mutex{}
+	newRoomInitApiLock = sync.Mutex{}
+	newMasterInfoLock  = sync.Mutex{}
+	// roomidGetInfoDict = map[roomid]GetInfo 根据roomid存储房间信息
+	roomidGetInfoDict = sync.Map{}
+	// roomidRoomInitDict = map[roomid]RoomInit 根据roomid存储房间信息
+	roomidRoomInitDict = sync.Map{}
+	// uidMasterInfoDict = map[uid]MasterInfo 根据uid存储主播信息
+	uidMasterInfoDict = sync.Map{}
+)
+
+const expirePeriod = 86400
+
+func (roomInit *RoomInit) isExpired() bool {
+	roomInit.rwMutex.RLock()
+	defer roomInit.rwMutex.RUnlock()
+	return time.Now().Unix()-roomInit.lastUpdate > expirePeriod
+}
+func (masterInfo *MasterInfo) isExpired() bool {
+	masterInfo.rwMutex.RLock()
+	defer masterInfo.rwMutex.RUnlock()
+	return time.Now().Unix()-masterInfo.lastUpdate > expirePeriod
+}
+func (getInfo *GetInfo) isExpired() bool {
+	getInfo.rwMutex.RLock()
+	defer getInfo.rwMutex.RUnlock()
+	return time.Now().Unix()-getInfo.lastUpdate > expirePeriod
+}
+
+func forceGetInfo(roomId int64) (GetInfo, error) {
+	//	https://api.live.bilibili.com/room/v1/Room/get_info
+	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/get_info?room_id=" + strconv.FormatInt(roomId, 10)
+	var getInfoResult GetInfo
+	err := getAndUnmarshal(urlBuilder, &getInfoResult)
+	if err != nil {
+		return GetInfo{}, err
+	}
+	getInfoResult.lastUpdate = time.Now().Unix()
+	getInfoResult.rwMutex = new(sync.RWMutex)
+	// 检查错误码
+	code := getInfoResult.Code
+	if 0 != code {
+		log.Error("请求房间信息 失败", getInfoResult.Message)
+		return GetInfo{}, errors.New(getInfoResult.Message)
+	}
+	return getInfoResult, nil
+}
+func forceRoomInit(roomId int64) (RoomInit, error) {
+	// 构造请求
+	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatInt(roomId, 10)
+	var roomInitResult RoomInit
+	err := getAndUnmarshal(urlBuilder, &roomInitResult)
+	if err != nil {
+		return RoomInit{}, err
+	}
+	roomInitResult.lastUpdate = time.Now().Unix()
+	roomInitResult.rwMutex = new(sync.RWMutex)
+	// 检查错误码
+	code := roomInitResult.Code
+	if 0 != code {
+		log.Error("请求房间信息 失败", roomInitResult.Message)
+		return RoomInit{}, errors.New(roomInitResult.Message)
+	}
+	roomidRoomInitDict.Store(roomId, roomInitResult)
+	return roomInitResult, nil
+}
+func forceMasterInfo(uid int64) (MasterInfo, error) {
+	// 构造请求
+	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatInt(uid, 10)
+	var masterInfoResult MasterInfo
+	err := getAndUnmarshal(urlBuilder, &masterInfoResult)
+	if err != nil {
+		return MasterInfo{}, err
+	}
+	masterInfoResult.lastUpdate = time.Now().Unix()
+	masterInfoResult.rwMutex = new(sync.RWMutex)
+
+	// 检查错误码
+	code := masterInfoResult.Code
+	if 0 != code {
+		log.Error("请求主播信息 失败", masterInfoResult.Message)
+		return MasterInfo{}, errors.New(masterInfoResult.Message)
+	}
+	uidMasterInfoDict.Store(uid, masterInfoResult)
+	return masterInfoResult, nil
+}
+func getInfo(roomId int64) (GetInfo, error) {
+	iGetInfo, ok := roomidGetInfoDict.Load(roomId)
+	if ok {
+		getInfoResult := iGetInfo.(GetInfo)
+		// 存在，检查是否过期
+		for getInfoResult.isExpired() {
+			// 过期？拿写锁再看一次
+			func() {
+				getInfoResult.rwMutex.Lock()
+				defer getInfoResult.rwMutex.Unlock()
+				iGetInfo, _ = roomidGetInfoDict.Load(roomId)
+				getInfoResult2 := iGetInfo.(GetInfo)
+				if time.Now().Unix()-getInfoResult2.lastUpdate > expirePeriod {
+					_, err := forceGetInfo(roomId)
+					if err != nil {
+						return
+					}
+				}
+			}()
+			iGetInfo, _ = roomidGetInfoDict.Load(roomId)
+			getInfoResult = iGetInfo.(GetInfo)
+		}
+		return getInfoResult, nil
+	} else {
+		newGetInfoApiLock.Lock()
+		var needUnlock = true
+		defer func() {
+			if needUnlock {
+				newGetInfoApiLock.Unlock()
+			}
+		}()
+		iGetInfo, ok = roomidGetInfoDict.Load(roomId)
+		if ok {
+			needUnlock = false
+			newGetInfoApiLock.Unlock()
+			return getInfo(roomId)
+		} else {
+			// 初次获取
+			getInfoResult, err := forceGetInfo(roomId)
+			if err != nil {
+				return GetInfo{}, err
+			}
+			return getInfoResult, nil
+		}
+	}
+}
+func roomInit(roomId int64) (RoomInit, error) {
+	iRoomInit, ok := roomidRoomInitDict.Load(roomId)
+	if ok {
+		roomInitResult := iRoomInit.(RoomInit)
+		// 存在，检查是否过期
+		for roomInitResult.isExpired() {
+			// 过期？拿写锁再看一次
+			func() {
+				roomInitResult.rwMutex.Lock()
+				defer roomInitResult.rwMutex.Unlock()
+				iRoomInit, _ = roomidRoomInitDict.Load(roomId)
+				roomInitResult2 := iRoomInit.(RoomInit)
+				if time.Now().Unix()-roomInitResult2.lastUpdate > expirePeriod {
+					_, err := forceRoomInit(roomId)
+					if err != nil {
+						return
+					}
+				}
+			}()
+			iRoomInit, _ = roomidRoomInitDict.Load(roomId)
+			roomInitResult = iRoomInit.(RoomInit)
+		}
+		return roomInitResult, nil
+	} else {
+		newRoomInitApiLock.Lock()
+		var needUnlock = true
+		defer func() {
+			if needUnlock {
+				newRoomInitApiLock.Unlock()
+			}
+		}()
+		iRoomInit, ok = roomidRoomInitDict.Load(roomId)
+		if ok {
+			needUnlock = false
+			newRoomInitApiLock.Unlock()
+			return roomInit(roomId)
+		} else {
+			// 初次获取
+			roomInitResult, err := forceRoomInit(roomId)
+			if err != nil {
+				return RoomInit{}, err
+			}
+			return roomInitResult, nil
+		}
+	}
+}
+func masterInfo(uid int64) (MasterInfo, error) {
+	iMasterInfo, ok := uidMasterInfoDict.Load(uid)
+	if ok {
+		masterInfoResult := iMasterInfo.(MasterInfo)
+		// 存在，检查是否过期
+		for masterInfoResult.isExpired() {
+			// 过期？拿写锁再看一次
+			func() {
+				masterInfoResult.rwMutex.Lock()
+				defer masterInfoResult.rwMutex.Unlock()
+				iMasterInfo, _ = uidMasterInfoDict.Load(uid)
+				masterInfoResult2 := iMasterInfo.(MasterInfo)
+				if time.Now().Unix()-masterInfoResult2.lastUpdate > expirePeriod {
+					_, err := forceMasterInfo(uid)
+					if err != nil {
+						return
+					}
+				}
+			}()
+			iMasterInfo, _ = uidMasterInfoDict.Load(uid)
+			masterInfoResult = iMasterInfo.(MasterInfo)
+		}
+		return masterInfoResult, nil
+	} else {
+		newMasterInfoLock.Lock()
+		var needUnlock = true
+		defer func() {
+			if needUnlock {
+				newMasterInfoLock.Unlock()
+			}
+		}()
+		iMasterInfo, ok = uidMasterInfoDict.Load(uid)
+		if ok {
+			needUnlock = false
+			newMasterInfoLock.Unlock()
+			return masterInfo(uid)
+		} else {
+			// 初次获取
+			masterInfoResult, err := forceMasterInfo(uid)
+			if err != nil {
+				return MasterInfo{}, err
+			}
+			return masterInfoResult, nil
+		}
+	}
+}
 
 // GetUidByRoomid 通过roomid获取uid
-func GetUidByRoomid(roomId uint64) (uint64, error) {
-	if !ContactBilibili {
-		return 0, nil
-	}
+func GetUidByRoomid(roomId int64) (int64, error) {
 	// 检查缓存的字典中是否已经存在
-	uid, ok := roomidUidDict[roomId]
+	//uid, ok := roomidUidDict[roomId]
+	var uid int64
+	iuid, ok := roomidUidDict.Load(roomId)
 	if ok {
+		uid = iuid.(int64)
 		// 存在，直接返回
 		return uid, nil
 	}
 	// 不存在，重新获取
+	if !ContactBilibili {
+		return 0, nil
+	}
 	// 构造请求
-	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
-	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
-	if errRequest != nil {
-		log.Error("请求用户uid 构造请求失败", errRequest.Error())
-		return 0, errRequest
-	}
-	reqHeaderSetter(&req.Header)
-	// 发起请求
-	resp, err := BiliBiliClient.Do(req)
+
+	roomInitResult, err := roomInit(roomId)
 	if err != nil {
-		log.Error("请求用户uid 请求失败", err.Error())
 		return 0, err
 	}
-	defer func(Body io.ReadCloser) {
-		errCloser := Body.Close()
-		if errCloser != nil {
-			log.Error("请求用户uid 关闭消息发送响应失败", errCloser.Error())
-		}
-	}(resp.Body)
-	// 读取请求
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("请求用户uid 读取响应消息失败", err.Error())
-		return 0, err
-	}
-	log.Trace("请求用户uid 响应", content)
 
-	var p fastjson.Parser
-	getter, errOfJsonParser := p.ParseBytes(content)
-	if errOfJsonParser != nil {
-		return 0, errOfJsonParser
-	}
-
-	// 检查错误码
-	code := getter.GetInt("code")
-	if 0 != code {
-		log.Error("请求用户uid 失败", getter.GetStringBytes("message"))
-		return 0, errors.New(string(getter.GetStringBytes("msg")))
-	}
 	// 读取 uid
-	uid = getter.GetUint64("data", "uid")
-	roomidUidDict[roomId] = uid
+	uid = roomInitResult.Data.Uid
+	//roomidUidDict[roomId] = uid
+	roomidUidDict.Store(roomId, uid)
 	return uid, nil
-
 }
 
 // GetAvatarByUid 通过uid获取头像
-func GetAvatarByUid(uid uint64) (string, error) {
-	if !ContactBilibili {
-		return "", nil
-	}
+func GetAvatarByUid(uid int64) (string, error) {
 	// 检查缓存的字典中是否已经存在
-	avatar, ok := avatarDict[uid]
+	//avatar, ok := avatarDict[uid]
+	var avatar string
+	iavatar, ok := avatarDict.Load(uid)
 	if ok {
+		avatar = iavatar.(string)
 		// 存在，直接返回
 		return avatar, nil
 	}
 	// 不存在，重新获取
+	if !ContactBilibili {
+		return "", nil
+	}
 	// 构造请求 "https://api.live.bilibili.com/live_user/v1/Master/info?uid="+uid
-	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatUint(uid, 10)
-	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
-	if errRequest != nil {
-		log.Error("请求用户头像 构造请求失败：", errRequest.Error())
-		return "", errRequest
-	}
-	reqHeaderSetter(&req.Header)
-	// 发起请求
-	resp, err := BiliBiliClient.Do(req)
+	masterInfoResult, err := masterInfo(uid)
 	if err != nil {
-		log.Error("请求用户头像 请求失败：", err.Error())
 		return "", err
 	}
-	defer func(Body io.ReadCloser) {
-		errCloser := Body.Close()
-		if errCloser != nil {
-			log.Error("请求用户头像 关闭消息发送响应失败：", errCloser.Error())
-		}
-	}(resp.Body)
-	// 读取请求
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("请求用户头像 读取响应消息失败：", err.Error())
-		return "", err
-	}
-	log.Trace("请求用户头像 响应：", content)
 
-	var p fastjson.Parser
-	getter, errOfJsonParser := p.ParseBytes(content)
-	if errOfJsonParser != nil {
-		return "", errOfJsonParser
-	}
-
-	// 检查错误码
-	code := getter.GetInt("code")
-
-	if 0 != code {
-		log.Error("请求用户头像 失败：", getter.GetStringBytes("message"))
-		return "", errors.New(string(getter.GetStringBytes("msg")))
-	}
 	// 读取头像
-	avatar = string(getter.GetStringBytes("data", "info", "face"))
+	avatar = masterInfoResult.Data.Info.Face
 
 	// 加入缓存
-	avatarDict[uid] = avatar
+	//avatarDict[uid] = avatar
+	avatarDict.Store(uid, avatar)
 	return avatar, nil
-
 }
 
 // GetAvatarByRoomID 通过roomid获取头像
-func GetAvatarByRoomID(roomid uint64) string {
-	if !ContactBilibili {
-		return ""
-	}
+func GetAvatarByRoomID(roomid int64) string {
 	uid, err := GetUidByRoomid(roomid)
 	if err != nil {
 		return ""
@@ -201,60 +541,41 @@ func GetAvatarByRoomID(roomid uint64) string {
 }
 
 // IsRoomLocked 检查主播房间是否被封禁 返回状态和时间戳
-func IsRoomLocked(roomId uint64) (isLocked bool, lockTill int64) {
+func IsRoomLocked(roomId int64) (isLocked bool, lockTill int64) {
+	// 构造请求
 	if !ContactBilibili {
 		return false, 0
 	}
-	// 每次下播时更新
-	time.Sleep(1 * time.Second)
-	// 构造请求
-	// 不要用 https://api.live.bilibili.com/room/v1/Room/getBannedInfo?roomid= 因为获取不到数据了
-	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatUint(roomId, 10)
-	req, errRequest := http.NewRequest("GET", urlBuilder, nil)
-	if errRequest != nil {
-		log.Error("请求直播间封禁状态 构造请求失败", errRequest.Error())
-		return false, 0
-	}
-	reqHeaderSetter(&req.Header)
-	// 发起请求
-	resp, err := BiliBiliClient.Do(req)
+	roomInitResult, err := forceRoomInit(roomId)
 	if err != nil {
-		log.Error("请求直播间封禁状态 请求失败", err.Error())
 		return false, 0
 	}
-	defer func(Body io.ReadCloser) {
-		errCloser := Body.Close()
-		if errCloser != nil {
-			log.Error("请求直播间封禁状态 关闭消息发送响应失败", errCloser.Error())
-		}
-	}(resp.Body)
-	// 读取请求
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("请求直播间封禁状态 读取响应消息失败", err.Error())
-		return false, 0
-	}
-	log.Trace("请求直播间封禁状态 响应", content)
-
-	var p fastjson.Parser
-	getter, errOfJsonParser := p.ParseBytes(content)
-	if errOfJsonParser != nil {
-		return false, 0
-	}
-
-	// 检查错误码
-	code := getter.GetInt("code")
-	//code := roomInfo.Code
-	if 0 != code {
-		log.Error("请求直播间封禁状态 失败", getter.GetStringBytes("message"))
-		return false, 0
-	}
-
 	// 读取 uid
-	uid := getter.GetUint64("data", "uid")
-	roomidUidDict[roomId] = uid
+	uid := roomInitResult.Data.Uid
+	//roomidUidDict[roomId] = uid
+	roomidUidDict.Store(roomId, uid)
 	// 读取锁定状态
-	isLocked = getter.GetBool("data", "is_locked")
-	lockTill = getter.GetInt64("data", "lock_till")
+	isLocked = roomInitResult.Data.IsLocked
+	lockTill = roomInitResult.Data.LockTill
 	return isLocked, lockTill
+}
+func GetAreaParentName(roomid int64) string {
+	if !ContactBilibili {
+		return "未知"
+	}
+	getInfoResult, err := getInfo(roomid)
+	if err != nil {
+		return "获取失败"
+	}
+	return getInfoResult.Data.ParentAreaName
+}
+func GetAreaName(roomid int64) string {
+	if !ContactBilibili {
+		return "未知"
+	}
+	getInfoResult, err := getInfo(roomid)
+	if err != nil {
+		return "获取失败"
+	}
+	return getInfoResult.Data.AreaName
 }

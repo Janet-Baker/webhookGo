@@ -2,6 +2,7 @@ package messageSender
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fastjson"
@@ -13,10 +14,16 @@ import (
 )
 
 type wxWorkAppToken struct {
-	sync.Mutex
+	sync.RWMutex
 	accessToken   string
 	tokenExpireAt atomic.Int64
 	//tokenExpireAt int64
+}
+
+func (token *wxWorkAppToken) isExpired() bool {
+	token.RLock()
+	defer token.RUnlock()
+	return time.Now().Unix() > token.tokenExpireAt.Load()
 }
 
 type WXWorkAppTarget struct {
@@ -76,6 +83,17 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 	return nil
 }
 
+type wxworkAppMessageStruct struct {
+	Touser   string `json:"touser"`
+	Msgtype  string `json:"msgtype"`
+	Agentid  string `json:"agentid"`
+	Markdown struct {
+		Content string `json:"content"`
+	} `json:"markdown"`
+	EnableDuplicateCheck   int `json:"enable_duplicate_check"`
+	DuplicateCheckInterval int `json:"duplicate_check_interval"`
+}
+
 func (app *WXWorkAppTarget) SendMessage(message Message) {
 	if message == nil {
 		return
@@ -84,7 +102,7 @@ func (app *WXWorkAppTarget) SendMessage(message Message) {
 		return
 	}
 	// 检查token是否过期
-	if time.Now().Unix() > app.token.tokenExpireAt.Load() {
+	if app.token.isExpired() {
 		func() { // 更新之前需要加锁，防止有线程正在更新
 			app.token.Lock()
 			defer app.token.Unlock()
@@ -98,23 +116,39 @@ func (app *WXWorkAppTarget) SendMessage(message Message) {
 		}()
 	}
 	// 制作要发送的 Markdown 消息
-	var bodyBuffer bytes.Buffer
-	bodyBuffer.WriteString(`{"touser":"`)
-	bodyBuffer.WriteString(app.ToUser)
-	bodyBuffer.WriteString(`","msgtype":"markdown","agentid":"`)
-	bodyBuffer.WriteString(app.AgentID)
-	bodyBuffer.WriteString(`","markdown":{"content":"# `)
-	bodyBuffer.WriteString(message.GetTitle())
-	bodyBuffer.WriteString("\n")
-	bodyBuffer.WriteString(message.GetContent())
-	bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
-
+	//var bodyBuffer bytes.Buffer
+	//bodyBuffer.WriteString(`{"touser":"`)
+	//bodyBuffer.WriteString(app.ToUser)
+	//bodyBuffer.WriteString(`","msgtype":"markdown","agentid":"`)
+	//bodyBuffer.WriteString(app.AgentID)
+	//bodyBuffer.WriteString(`","markdown":{"content":"# `)
+	//bodyBuffer.WriteString(message.GetTitle())
+	//bodyBuffer.WriteString("\n")
+	//bodyBuffer.WriteString(message.GetContent())
+	//bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
+	var messageStruct = wxworkAppMessageStruct{
+		Touser:  app.ToUser,
+		Msgtype: "markdown",
+		Agentid: app.AgentID,
+		Markdown: struct {
+			Content string `json:"content"`
+		}(struct{ Content string }{
+			Content: "# " + message.GetTitle() + "\n" + message.GetContent(),
+		}),
+		EnableDuplicateCheck:   1,
+		DuplicateCheckInterval: 3600,
+	}
+	bodyBuffer, err := json.Marshal(messageStruct)
+	if err != nil {
+		log.Error("发送企业微信应用消息 消息体编码失败", err)
+		return
+	}
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
 	targetUrl := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + app.token.accessToken
 
 	// 发送请求
 	log.Trace("发送企业微信应用消息 请求地址", targetUrl)
-	resp, err := http.Post(targetUrl, "application/json", &bodyBuffer)
+	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(bodyBuffer))
 	if err != nil {
 		log.Error("发送企业微信应用消息 请求失败", err.Error())
 		return
