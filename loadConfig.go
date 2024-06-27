@@ -21,6 +21,7 @@ type initStruct struct {
 	bililiveRecoder options
 	blrec           options
 	ddtv3           options
+	ddtv5           options
 }
 type ConfigLoader struct {
 	Debug           bool                            `yaml:"debug"`
@@ -116,15 +117,15 @@ func loadConfig() initStruct {
 		}
 		for k, v := range configuration.Blrec.Events {
 			v.Notify = false
-			configuration.BililiveRecoder.Events[k] = v
+			configuration.Blrec.Events[k] = v
 		}
 		for k, v := range configuration.DDTV3.Events {
 			v.Notify = false
-			configuration.BililiveRecoder.Events[k] = v
+			configuration.DDTV3.Events[k] = v
 		}
 		for k, v := range configuration.DDTV5.Events {
 			v.Notify = false
-			configuration.BililiveRecoder.Events[k] = v
+			configuration.DDTV5.Events[k] = v
 		}
 	}
 
@@ -141,6 +142,7 @@ func loadConfig() initStruct {
 		bililiveRecoder: options{enable: configuration.BililiveRecoder.Enable, path: configuration.BililiveRecoder.Path},
 		blrec:           options{enable: configuration.Blrec.Enable, path: configuration.Blrec.Path},
 		ddtv3:           options{enable: configuration.DDTV3.Enable, path: configuration.DDTV3.Path},
+		ddtv5:           options{enable: configuration.DDTV5.Enable, path: configuration.DDTV5.Path},
 	}
 	if configuration.BililiveRecoder.Enable {
 		webhookHandler.UpdateBililiveRecoderSettings(configuration.BililiveRecoder.Events)

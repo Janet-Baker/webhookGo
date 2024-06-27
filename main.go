@@ -33,8 +33,8 @@ func main() {
 		r.POST(config.ddtv3.path, webhookHandler.DDTV3WebhookHandler)
 	}
 	if config.ddtv5.enable {
-		log.Info("DDTV5已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
-		r.POST(config.ddtv3.path, webhookHandler.DDTV5WebhookHandler)
+		log.Info("DDTV5已启用，监听 http://" + config.listenAddress + config.ddtv5.path)
+		r.POST(config.ddtv5.path, webhookHandler.DDTV5WebhookHandler)
 	}
 
 	r.NoRoute(func(c *gin.Context) {
