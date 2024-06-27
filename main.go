@@ -29,8 +29,12 @@ func main() {
 		r.POST(config.blrec.path, webhookHandler.BlrecWebhookHandler)
 	}
 	if config.ddtv3.enable {
-		log.Info("DDTV已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
+		log.Info("DDTV3已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
 		r.POST(config.ddtv3.path, webhookHandler.DDTV3WebhookHandler)
+	}
+	if config.ddtv5.enable {
+		log.Info("DDTV5已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
+		r.POST(config.ddtv3.path, webhookHandler.DDTV5WebhookHandler)
 	}
 
 	r.NoRoute(func(c *gin.Context) {

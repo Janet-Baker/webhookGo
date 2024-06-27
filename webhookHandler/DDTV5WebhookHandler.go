@@ -315,9 +315,7 @@ func (message *DDTV5MessageStruct) GetTitle() string {
 				return name + "喜提直播间封禁"
 			}
 			// 封禁检测
-			var isLocked bool
-			isLocked, _ = bilibiliInfo.IsRoomLocked(message.Data.RoomId)
-			if isLocked {
+			if message.Data.IsLocked.Value {
 				return name + "喜提直播间封禁"
 			} else {
 				return name + " 下播了"
@@ -355,10 +353,9 @@ func (message *DDTV5MessageStruct) GetContent() string {
 			msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
 		}
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
-			isLocked, locktill := bilibiliInfo.IsRoomLocked(message.Data.RoomId)
-			if isLocked {
+			if message.Data.IsLocked.Value {
 				msgContentBuilder.WriteString("\n- 直播间封禁至：")
-				msgContentBuilder.WriteString(time.Unix(locktill, 0).Format("2006-01-02 15:04:05"))
+				msgContentBuilder.WriteString(message.Data.LockTill.Value)
 			}
 		}
 		return msgContentBuilder.String()
@@ -381,7 +378,12 @@ func (message *DDTV5MessageStruct) GetIconURL() string {
 }
 
 func (message *DDTV5MessageStruct) SendToAllTargets() {
-
+	var newMessage = messageSender.GeneralPushMessage{
+		Title:   message.GetTitle(),
+		Content: message.GetContent(),
+		IconURL: message.GetIconURL(),
+	}
+	newMessage.SendToAllTargets()
 }
 
 func ddtv5TaskRunner(content []byte) {
@@ -396,12 +398,13 @@ func ddtv5TaskRunner(content []byte) {
 		log.Info("DDTV5", message.Message)
 	}
 	if eventSettings.Notify {
-		var newMessage = messageSender.GeneralPushMessage{
-			Title:   message.GetTitle(),
-			Content: message.GetContent(),
-			IconURL: message.GetIconURL(),
+		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
+			// 封禁检测
+			isLocked, locktill := bilibiliInfo.IsRoomLocked(message.Data.RoomId)
+			message.Data.IsLocked.Value = isLocked
+			message.Data.LockTill.Value = time.Unix(locktill, 0).Format("2006-01-02 15:04:05")
 		}
-		newMessage.SendToAllTargets()
+		message.SendToAllTargets()
 	}
 	if eventSettings.HaveCommand {
 		log.Info("执行命令：", eventSettings.ExecCommand)

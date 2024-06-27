@@ -8,7 +8,6 @@ type Message interface {
 	GetTitle() string
 	GetContent() string
 	GetIconURL() string
-	SendToAllTargets()
 }
 
 type GeneralPushMessage struct {
