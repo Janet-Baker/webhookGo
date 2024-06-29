@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -376,11 +375,15 @@ func (message *DDTV5MessageStruct) GetContent() string {
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
 		if message.Code == StartLiveEvent {
-			if message.Data.LiveTime.Value > 0 {
+			if message.Data.LiveStatus.Value == 1 {
 				msgContentBuilder.WriteString("\n- 开播时间：")
 				msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
 			} else {
-
+				message.Data.LiveStatus.Value, message.Data.LiveTime.Value = bilibiliInfo.GetLiveStatus(message.Data.RoomId)
+				if message.Data.LiveStatus.Value > 0 {
+					msgContentBuilder.WriteString("\n- 开播时间：")
+					msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
+				}
 			}
 		}
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
@@ -414,7 +417,7 @@ func (message *DDTV5MessageStruct) SendToAllTargets() {
 		Content: message.GetContent(),
 		IconURL: message.GetIconURL(),
 	}
-	newMessage.SendToAllTargets()
+	go newMessage.SendToAllTargets()
 }
 
 func DDTV5WebhookHandler(c *gin.Context) {
@@ -443,12 +446,7 @@ func DDTV5WebhookHandler(c *gin.Context) {
 		message.SendToAllTargets()
 	}
 	if eventSettings.HaveCommand {
-		log.Info("执行命令：", eventSettings.ExecCommand)
-		cmd := exec.Command(eventSettings.ExecCommand)
-		err := cmd.Run()
-		if err != nil {
-			log.Error("执行命令失败：", err.Error())
-		}
+		go execCommand(eventSettings.ExecCommand)
 	}
 }
 

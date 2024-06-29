@@ -37,6 +37,7 @@ func (message *GeneralPushMessage) SendToAllTargets() {
 	}
 
 	// 并发发送消息
+	// 等 go 1.22 我就给这玩意改咯
 	for i := 0; i < len(servers); i++ {
 		go func(i int) {
 			servers[i].SendMessage(message)

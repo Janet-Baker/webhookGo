@@ -2,6 +2,10 @@ package webhookHandler
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"os/exec"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -98,4 +102,43 @@ func formatStorageSpace(bytes int64) string {
 	}
 	// 返回格式化后的字符串，保留两位小数
 	return fmt.Sprintf("%.2f%s", value, units[index])
+}
+
+// secondsToString 将用秒表示的时间转换为字符串（?天）(?时)(?分)(?秒)(剩余小数)
+// 例如 1.234567 => "1秒234"
+func secondsToString(seconds float64) string {
+	var timeBuilder strings.Builder
+	s := int(seconds)
+	ms := int((seconds - float64(s)) * 1000)
+	if s >= 86400 {
+		timeBuilder.WriteString(strconv.Itoa(s / 86400))
+		timeBuilder.WriteString("天")
+		s = s - (int(s/86400))*86400
+	}
+	if s >= 3600 {
+		timeBuilder.WriteString(strconv.Itoa(s / 3600))
+		timeBuilder.WriteString("时")
+		s = s - (int(s/3600))*3600
+	}
+	if s >= 60 {
+		timeBuilder.WriteString(strconv.Itoa(s / 60))
+		timeBuilder.WriteString("分")
+		s = s - (int(s/60))*60
+	}
+	timeBuilder.WriteString(strconv.Itoa(s))
+	timeBuilder.WriteString("秒")
+
+	if ms > 1 {
+		timeBuilder.WriteString(strconv.Itoa(ms))
+	}
+	return timeBuilder.String()
+}
+
+func execCommand(command string) {
+	log.Info("执行命令：", command)
+	cmd := exec.Command(command)
+	err := cmd.Run()
+	if err != nil {
+		log.Error("执行命令失败：", err.Error())
+	}
 }
