@@ -25,7 +25,7 @@ func (barkServer *BarkServer) SendMessage(message Message) {
 		return
 	}
 	sendUrl := barkServer.ServerUrl + barkServer.BarkSecrets + "/" + url.QueryEscape(message.GetTitle()) + "/" + url.QueryEscape(message.GetContent())
-	if message.GetTitle() != "" {
+	if message.GetIconURL() != "" {
 		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.GetIconURL())
 	}
 	resp, err := http.Get(sendUrl)

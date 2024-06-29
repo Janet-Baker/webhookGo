@@ -479,6 +479,21 @@ func GetUidByRoomid(roomId int64) (int64, error) {
 		// 存在，直接返回
 		return uid, nil
 	}
+	iGetInfo, ok := roomidGetInfoDict.Load(roomId)
+	if ok {
+		getInfoResult := iGetInfo.(GetInfo)
+		uid = getInfoResult.Data.Uid
+		roomidUidDict.Store(roomId, uid)
+		return uid, nil
+	}
+	iRoomInit, ok := roomidRoomInitDict.Load(roomId)
+	if ok {
+		roomInitResult := iRoomInit.(RoomInit)
+		uid = roomInitResult.Data.Uid
+		roomidUidDict.Store(roomId, uid)
+		return uid, nil
+	}
+
 	// 不存在，重新获取
 	if !ContactBilibili {
 		return 0, nil
@@ -548,6 +563,7 @@ func IsRoomLocked(roomId int64) (isLocked bool, lockTill int64) {
 	}
 	roomInitResult, err := forceRoomInit(roomId)
 	if err != nil {
+		log.Error("请求房间信息 失败", err.Error())
 		return false, 0
 	}
 	// 读取 uid
@@ -559,7 +575,7 @@ func IsRoomLocked(roomId int64) (isLocked bool, lockTill int64) {
 	lockTill = roomInitResult.Data.LockTill
 	return isLocked, lockTill
 }
-func GetAreaParentName(roomid int64) string {
+func GetAreaV2ParentName(roomid int64) string {
 	if !ContactBilibili {
 		return "未知"
 	}
@@ -569,7 +585,7 @@ func GetAreaParentName(roomid int64) string {
 	}
 	return getInfoResult.Data.ParentAreaName
 }
-func GetAreaName(roomid int64) string {
+func GetAreaV2Name(roomid int64) string {
 	if !ContactBilibili {
 		return "未知"
 	}

@@ -39,7 +39,7 @@ func TestGetAvatarByUid(t *testing.T) {
 func TestGetAreaName1(t *testing.T) {
 	ContactBilibili = false
 	var roomid int64 = 4983935
-	areaName := GetAreaName(roomid)
+	areaName := GetAreaV2Name(roomid)
 	t.Log(areaName)
 	if areaName == "获取失败" {
 		t.Fail()
@@ -49,7 +49,7 @@ func TestGetAreaName1(t *testing.T) {
 func TestGetAreaName2(t *testing.T) {
 	ContactBilibili = true
 	var roomid int64 = 4983935
-	areaName := GetAreaName(roomid)
+	areaName := GetAreaV2Name(roomid)
 	t.Log(areaName)
 	if areaName == "未知" || areaName == "获取失败" {
 		t.Fail()

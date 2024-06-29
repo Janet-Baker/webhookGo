@@ -186,90 +186,124 @@ var ddtv5IdEventNameMap = map[int]string{
 // 独立设置一个变量，方便测试插桩
 var ddtv5WebhookHandler func(content []byte) = ddtv5TaskRunner
 
+// TimeStopwatch
+// DDTV5 的开发者把C#的Stopwatch也序列化传出来了……
+type TimeStopwatch struct {
+	IsRunning           bool   `json:"IsRunning"`
+	Elapsed             string `json:"Elapsed"`
+	ElapsedMilliseconds int64  `json:"ElapsedMilliseconds"`
+	ElapsedTicks        int64  `json:"ElapsedTicks"`
+}
+
+// LiveChatListener 在开播时(StartLiveEvent)这玩意可以为null的
+type LiveChatListener struct {
+	RoomId       int      `json:"RoomId"`   // 直播间房间号(长号)
+	Title        string   `json:"Title"`    // 标题
+	Name         string   `json:"Name"`     // 昵称
+	File         string   `json:"File"`     // 输出文件路径构造
+	State        bool     `json:"State"`    // 正在监听
+	Register     []string `json:"Register"` // "DetectRoom_LiveStart" | "DanmaOnlyWindow" | "VlcPlayWindow"
+	DanmuMessage struct {
+		FileName      string         `json:"FileName"` // @NullAble 已保存的弹幕文件位置
+		TimeStopwatch *TimeStopwatch `json:"TimeStopwatch"`
+		Danmu         []struct {
+			Time      float64 `json:"time"`      // 弹幕在视频里的时间
+			Type      int     `json:"type"`      // 弹幕类型
+			Size      int     `json:"size"`      // 弹幕大小
+			Color     int     `json:"color"`     // 弹幕颜色
+			Timestamp int64   `json:"timestamp"` // 时间戳
+			Pool      int     `json:"pool"`      // 弹幕池
+			Uid       int64   `json:"uid"`       // 发送者UID
+			Message   string  `json:"Message"`   // 弹幕信息
+			Nickname  string  `json:"Nickname"`  // 发送人昵称
+			LV        int     `json:"LV"`        // 发送人舰队等级
+		} `json:"Danmu"` // 弹幕信息
+		SuperChat []struct {
+			Time         float64 `json:"Time"`         // 送礼的时候在视频里的时间
+			Timestamp    int64   `json:"Timestamp"`    // 时间戳
+			UserId       int64   `json:"UserId"`       // 打赏人UID
+			UserName     string  `json:"UserName"`     // 打赏人昵称
+			Price        float64 `json:"Price"`        // SC金额
+			Message      string  `json:"Message"`      // SC消息内容
+			MessageTrans string  `json:"MessageTrans"` // SC消息内容_翻译后
+			TimeLength   int     `json:"TimeLength"`   // SC消息的持续时间
+		} `json:"SuperChat"` // 醒目留言
+		Gift []struct {
+			Time      float64 `json:"Time"`      // 送礼的时候在视频里的时间
+			Timestamp int64   `json:"Timestamp"` // 时间戳
+			UserId    int64   `json:"UserId"`    // 送礼人UID
+			UserName  string  `json:"UserName"`  // 送礼人昵称
+			Amount    int     `json:"Amount"`    // 礼物数量
+			Price     float64 `json:"Price"`     // 花费 单位:金瓜子
+			GiftName  string  `json:"GiftName"`  // 礼物名称
+		} `json:"Gift"` // 礼物信息
+		GuardBuy []struct {
+			Time       float64 `json:"Time"`       // 送礼的时候在视频里的时间
+			Timestamp  int64   `json:"Timestamp"`  // 时间戳
+			UserId     int64   `json:"UserId"`     // 上舰人UID
+			UserName   string  `json:"UserName"`   // 上舰人昵称
+			Number     int     `json:"Number"`     // 开通了几个月
+			GuradName  string  `json:"GuradName"`  // 开通的舰队名称
+			GuardLevel int     `json:"GuardLevel"` // 舰队等级：1-总督 2-提督 3-舰长
+			Price      float64 `json:"Price"`      // 花费 单位:金瓜子
+		} `json:"GuardBuy"` // 舰队信息
+	} `json:"DanmuMessage"`
+	TimeStopwatch *TimeStopwatch `json:"TimeStopwatch"`
+	SaveCount     int            `json:"SaveCount"`
+}
+
 // DDTV5Data DDTV5 数据 可能为null所以需要单独拿出来。
 type DDTV5Data struct {
 	Title struct {
 		Value string `json:"Value"`
-	} `json:"Title"`
+	} `json:"Title"` // 标题
 	Description struct {
 		Value string `json:"Value"`
-	} `json:"description"`
+	} `json:"description"` // 主播简介
 	LiveTime struct {
 		Value int64 `json:"Value"`
-	} `json:"live_time"`
+	} `json:"live_time"` // 开播时间(未开播时为-62170012800,live_status为1时有效)
 	LiveStatus struct {
 		Value int `json:"Value"`
-	} `json:"live_status"`
+	} `json:"live_status"` // 直播状态(0:未直播   1:正在直播   2:轮播中)
+	// LiveStatusEndEvent live_status_end_event 触发下播事件缓存（表示该房间目前为开播事件触发状态，但是事件还未处理完成）
 	LiveStatusEndEvent bool `json:"live_status_end_event"`
 	ShortId            struct {
 		Value int `json:"Value"`
-	} `json:"short_id"`
+	} `json:"short_id"` // 直播间房间号(直播间短房间号，常见于签约主播)
 	AreaV2Name struct {
 		Value string `json:"Value"`
-	} `json:"area_v2_name"`
+	} `json:"area_v2_name"` // 直播间新版分区名
 	AreaV2ParentName struct {
 		Value string `json:"Value"`
-	} `json:"area_v2_parent_name"`
+	} `json:"area_v2_parent_name"` // 直播间新版父分区名
 	Face struct {
 		Value string `json:"Value"`
-	} `json:"face"`
+	} `json:"face"` // 主播头像url
 	CoverFromUser struct {
 		Value string `json:"Value"`
-	} `json:"cover_from_user"`
+	} `json:"cover_from_user"` // 直播封面图
 	Keyframe struct {
 		Value string `json:"Value"`
-	} `json:"keyframe"`
+	} `json:"keyframe"` // 直播关键帧图
 	LockTill struct {
 		Value string `json:"Value"`
-	} `json:"lock_till"`
+	} `json:"lock_till"` // 直播间锁定时间戳
 	IsLocked struct {
 		Value bool `json:"Value"`
-	} `json:"is_locked"`
-	CurrentMode int `json:"CurrentMode"`
+	} `json:"is_locked"` // 是否锁定
+	CurrentMode int `json:"CurrentMode"` // 当前模式（1:FLV 2:HLS）
 	DownInfo    struct {
-		IsDownload          bool      `json:"IsDownload"`
-		IsCut               bool      `json:"IsCut"`
-		TaskType            int       `json:"taskType"`
-		DownloadSize        int       `json:"DownloadSize"`
-		RealTimeDownloadSpe float64   `json:"RealTimeDownloadSpe"`
-		Status              int       `json:"Status"`
-		StartTime           time.Time `json:"StartTime"`
-		EndTime             time.Time `json:"EndTime"`
-		LiveChatListener    struct {
-			RoomId       int      `json:"RoomId"`
-			Title        string   `json:"Title"`
-			Name         string   `json:"Name"`
-			File         string   `json:"File"`
-			State        bool     `json:"State"`
-			Register     []string `json:"Register"`
-			DanmuMessage struct {
-				FileName      interface{} `json:"FileName"`
-				TimeStopwatch interface{} `json:"TimeStopwatch"`
-				Danmu         []struct {
-					Time      float64 `json:"time"`
-					Type      int     `json:"type"`
-					Size      int     `json:"size"`
-					Color     int     `json:"color"`
-					Timestamp int64   `json:"timestamp"`
-					Pool      int     `json:"pool"`
-					Uid       int64   `json:"uid"`
-					Message   string  `json:"Message"`
-					Nickname  string  `json:"Nickname"`
-					LV        int     `json:"LV"`
-				} `json:"Danmu"`
-				SuperChat []interface{} `json:"SuperChat"`
-				Gift      []interface{} `json:"Gift"`
-				GuardBuy  []interface{} `json:"GuardBuy"`
-			} `json:"DanmuMessage"`
-			TimeStopwatch struct {
-				IsRunning           bool   `json:"IsRunning"`
-				Elapsed             string `json:"Elapsed"`
-				ElapsedMilliseconds int64  `json:"ElapsedMilliseconds"`
-				ElapsedTicks        int64  `json:"ElapsedTicks"`
-			} `json:"TimeStopwatch"`
-			SaveCount int `json:"SaveCount"`
-		} `json:"LiveChatListener"`
-		DownloadFileList struct {
+		IsDownload          bool              `json:"IsDownload"`          // 当前是否在下载
+		IsCut               bool              `json:"IsCut"`               // 是否触发瞎几把剪
+		TaskType            int               `json:"taskType"`            // 任务类型
+		DownloadSize        int64             `json:"DownloadSize"`        // 当前房间下载任务总大小
+		RealTimeDownloadSpe float64           `json:"RealTimeDownloadSpe"` // 实时下载速度
+		Status              int               `json:"Status"`              // 任务状态
+		StartTime           time.Time         `json:"StartTime"`           // 任务开始时间
+		EndTime             time.Time         `json:"EndTime"`             // 任务结束时间
+		LiveChatListener    *LiveChatListener `json:"LiveChatListener"`
+		DownloadFileList    struct {
 			TranscodingCount          int      `json:"TranscodingCount"`
 			VideoFile                 []string `json:"VideoFile"`
 			DanmuFile                 []string `json:"DanmuFile"`
@@ -279,16 +313,16 @@ type DDTV5Data struct {
 			CurrentOperationVideoFile string   `json:"CurrentOperationVideoFile"`
 		} `json:"DownloadFileList"`
 	} `json:"DownInfo"`
-	Name              string `json:"Name"`
-	Description1      string `json:"Description"`
-	RoomId            int64  `json:"RoomId"`
-	UID               int64  `json:"UID"`
-	IsAutoRec         bool   `json:"IsAutoRec"`
-	IsRemind          bool   `json:"IsRemind"`
-	IsRecDanmu        bool   `json:"IsRecDanmu"`
-	Like              bool   `json:"Like"`
-	Shell             string `json:"Shell"`
-	AppointmentRecord bool   `json:"AppointmentRecord"`
+	Name              string `json:"Name"`              // 昵称
+	Description1      string `json:"Description"`       // 描述
+	RoomId            int64  `json:"RoomId"`            // 直播间房间号(长号)
+	UID               int64  `json:"UID"`               // 主播mid
+	IsAutoRec         bool   `json:"IsAutoRec"`         // 是否自动录制
+	IsRemind          bool   `json:"IsRemind"`          // 是否开播提醒
+	IsRecDanmu        bool   `json:"IsRecDanmu"`        // 是否录制弹幕
+	Like              bool   `json:"Like"`              // 特殊标记
+	Shell             string `json:"Shell"`             // 该房间录制完成后会执行的Shell命令
+	AppointmentRecord bool   `json:"AppointmentRecord"` // 是否预约下一次录制
 }
 
 type DDTV5MessageStruct struct {
@@ -307,9 +341,6 @@ func (message *DDTV5MessageStruct) GetTitle() string {
 	}
 	if message.Code > 40000 {
 		name := message.Data.Name
-		if len(name) == 0 {
-			name = message.Data.DownInfo.LiveChatListener.Name
-		}
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
 			if message.Data.IsLocked.Value {
 				return name + "喜提直播间封禁"
@@ -339,18 +370,22 @@ func (message *DDTV5MessageStruct) GetContent() string {
 		msgContentBuilder.WriteString(")\n- 标题：")
 		msgContentBuilder.WriteString(message.Data.Title.Value)
 		msgContentBuilder.WriteString("\n- 分区：")
-		if message.Data.AreaV2ParentName.Value == "" {
-			message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaParentName(message.Data.UID)
+		if len(message.Data.AreaV2ParentName.Value) == 0 {
+			message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaV2ParentName(message.Data.UID)
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2ParentName.Value)
 		msgContentBuilder.WriteString(" - ")
-		if message.Data.AreaV2Name.Value == "" {
-			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaName(message.Data.UID)
+		if len(message.Data.AreaV2Name.Value) == 0 {
+			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.UID)
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
 		if message.Code == StartLiveEvent {
-			msgContentBuilder.WriteString("\n- 开播时间：")
-			msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
+			if message.Data.LiveTime.Value > 0 {
+				msgContentBuilder.WriteString("\n- 开播时间：")
+				msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
+			} else {
+
+			}
 		}
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
 			if message.Data.IsLocked.Value {
