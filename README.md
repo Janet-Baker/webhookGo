@@ -12,10 +12,11 @@
 5. 在相关的可以发送Webhook的应用程序中，填写Webhook地址。
 建议配置完成之后再进行这一步。
    - 在 [mikufans录播姬](https://rec.danmuji.org/)
-   的设置页面 **Webhook V2** 中，填写`http://127.0.0.1:14000/bililiverecoder`
+   的设置页面 **Webhook V2** 中，填写`http://127.0.0.1:14000/bililiverecorder`
    - 在 [blrec](https://github.com/acgnhiki/blrec/) 网页控制台的设置页面最下方**Webhooks**中，添加服务器
    `http://127.0.0.1:14000/blrec`
-   - 在 [DDTV](https://ddtv.pro/) 的配置文件`DDTV_Config.ini`中，找到`WebHookUrl=`，填写`http://127.0.0.1:14000/ddtv`
+   - 在 [DDTV3](https://ddtv.pro/) 的配置文件`DDTV_Config.ini`中，找到`WebHookUrl=`，填写`http://127.0.0.1:14000/ddtv3`
+   - 在 [DDTV5](https://ddtv.pro/) 的Desktop版的`设置`-`DDTV基础设置`-`Webhook`中，点击右边箭头展开，在文本框中填写`http://127.0.0.1:14000/ddtv5`
 
 ## 自定义读取配置文件的位置
 > webhookGo.exe -c config.yml
@@ -30,6 +31,15 @@ address 监听地址，默认`127.0.0.1:14000`
 
 ```yaml
 address: '127.0.0.1:14000'
+```
+
+### 允许连接至Bilibili
+
+为了能够在部分没有传递主播头像的程序中取得主播头像，以及在直播结束时检查直播间封禁状态，需要连接至哔哩哔哩服务器。
+
+```yaml
+# contact_bilibili 允许访问Bilibili服务器，获取主播头像，下播时检查直播间封禁状态。
+contact_bilibili: true
 ```
 
 ### 需要Bark推送的
@@ -61,22 +71,32 @@ WeWorkApp:
 
 ### 提供webhook响应
 ```yaml
-# 需要响应的服务种类，支持 BililiveRecoder Blrec DDTV
-BililiveRecoder:
-    # enable 是否启用这个服务，不填则为false
-    enable: true
-    # path 服务的路径，不填则为默认值
-    path: '/bililiverecoder'
-    # events 响应的事件种类
-    events:
-        # SessionStarted 代表事件的名称，需要根据每一种服务的文档来填写
+Receivers:
+   - type: "BililiveRecorder"
+      # enable 是否启用该服务
+     enable: true
+      # path 该服务的访问路径
+     path: '/bililiverecorder'
+      # events 该服务监听的事件，事件种类见 https://rec.danmuji.org/reference/webhook/#webhook-v2
+     events:
         SessionStarted:
-            # care 是否在控制台输出收到了事件的提示
-            care: false
-            # notify 是否推送消息
-            notify: false
-            # have_command 是否执行命令
-            have_command: false
-            # exec_command 执行的命令
-            exec_command: ""
+           # care 是否在控制台提示收到了该事件
+           care: false
+           # notify 是否推送该事件
+           notify: false
+           # have_command 是否执行命令
+           have_command: false
+           # exec_command 执行的命令
+           exec_command: ""
+   - type: "Blrec"
+     enable: true
+     path: '/blrec'
+      # 事件种类及可提取的信息见 https://github.com/acgnhiki/blrec/wiki/Webhook
+     events:
+        LiveBeganEvent:
+           care: true
+           notify: true
+           have_command: false
+           exec_command: ""
+#...
 ```

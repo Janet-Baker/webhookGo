@@ -83,15 +83,17 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 	return nil
 }
 
-type wxworkAppMessageStruct struct {
-	Touser   string `json:"touser"`
-	Msgtype  string `json:"msgtype"`
-	Agentid  string `json:"agentid"`
-	Markdown struct {
-		Content string `json:"content"`
-	} `json:"markdown"`
-	EnableDuplicateCheck   int `json:"enable_duplicate_check"`
-	DuplicateCheckInterval int `json:"duplicate_check_interval"`
+type WXWorkAppMessageStruct struct {
+	Touser                 string   `json:"touser"`
+	Msgtype                string   `json:"msgtype"`
+	Agentid                string   `json:"agentid"`
+	Markdown               Markdown `json:"markdown"`
+	EnableDuplicateCheck   int      `json:"enable_duplicate_check"`
+	DuplicateCheckInterval int      `json:"duplicate_check_interval"`
+}
+
+type Markdown struct {
+	Content string `json:"content"`
 }
 
 func (app *WXWorkAppTarget) SendMessage(message Message) {
@@ -126,15 +128,11 @@ func (app *WXWorkAppTarget) SendMessage(message Message) {
 	//bodyBuffer.WriteString("\n")
 	//bodyBuffer.WriteString(message.GetContent())
 	//bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
-	var messageStruct = wxworkAppMessageStruct{
-		Touser:  app.ToUser,
-		Msgtype: "markdown",
-		Agentid: app.AgentID,
-		Markdown: struct {
-			Content string `json:"content"`
-		}(struct{ Content string }{
-			Content: "# " + message.GetTitle() + "\n" + message.GetContent(),
-		}),
+	var messageStruct = WXWorkAppMessageStruct{
+		Touser:                 app.ToUser,
+		Msgtype:                "markdown",
+		Agentid:                app.AgentID,
+		Markdown:               Markdown{"# " + message.GetTitle() + "\n\n" + message.GetContent()},
 		EnableDuplicateCheck:   1,
 		DuplicateCheckInterval: 3600,
 	}

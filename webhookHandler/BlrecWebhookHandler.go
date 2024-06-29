@@ -14,7 +14,7 @@ import (
 )
 
 // BlrecTaskRunner 根据响应体内容，执行任务
-func blrecTaskRunner(content []byte) {
+func blrecTaskRunner(path string, content []byte) {
 	log.Trace(string(content))
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -35,7 +35,7 @@ func blrecTaskRunner(content []byte) {
 
 	// 判断事件类型
 	hookType := string(getter.GetStringBytes("type"))
-	eventSettings, _ := blrecSettings[hookType]
+	eventSettings := blrecSettings[path][hookType]
 	switch hookType {
 	// LiveBeganEvent 主播开播
 	case "LiveBeganEvent":
@@ -273,10 +273,10 @@ func BlrecWebhookHandler(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusOK)
-	go blrecTaskRunner(content)
+	go blrecTaskRunner(c.FullPath(), content)
 }
 
-var blrecSettings map[string]Event
+var blrecSettings = make(map[string]map[string]Event)
 var blrecEventNameMap = map[string]string{
 	"LiveBeganEvent":                    "主播开播",
 	"LiveEndedEvent":                    "主播下播",
@@ -295,6 +295,6 @@ var blrecEventNameMap = map[string]string{
 	"Error":                             "程序出现异常",
 }
 
-func UpdateBlrecSettings(events map[string]Event) {
-	blrecSettings = events
+func UpdateBlrecSettings(path string, events map[string]Event) {
+	blrecSettings[path] = events
 }

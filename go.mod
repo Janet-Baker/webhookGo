@@ -1,6 +1,6 @@
 module webhookGo
 
-go 1.21.6
+go 1.21.11
 
 require (
 	github.com/gin-gonic/gin v1.10.0

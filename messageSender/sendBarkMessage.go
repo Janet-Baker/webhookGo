@@ -30,7 +30,7 @@ func (barkServer *BarkServer) SendMessage(message Message) {
 	}
 	resp, err := http.Get(sendUrl)
 	if err != nil {
-		log.Error("发送Bark消息失败：%s", err.Error())
+		log.Error("发送Bark消息失败：", err)
 		return
 	}
 	defer func(Body io.ReadCloser) {

@@ -14,7 +14,7 @@ import (
 )
 
 // ddtv3TaskRunner 根据响应体内容，执行任务
-func ddtv3TaskRunner(content []byte) {
+func ddtv3TaskRunner(path string, content []byte) {
 	log.Trace(string(content))
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -35,7 +35,7 @@ func ddtv3TaskRunner(content []byte) {
 
 	// 判断事件类型
 	eventType := getter.GetInt("type")
-	eventSettings, _ := ddtv3Settings[eventType]
+	eventSettings, _ := ddtv3Settings[path][eventType]
 	switch eventType {
 	//	0 StartLive 主播开播
 	case 0:
@@ -372,10 +372,10 @@ func DDTV3WebhookHandler(c *gin.Context) {
 	}
 	// return 200 at first
 	c.Status(http.StatusOK)
-	go ddtv3TaskRunner(content)
+	go ddtv3TaskRunner(c.FullPath(), content)
 }
 
-var ddtv3Settings = make(map[int]Event)
+var ddtv3Settings = make(map[string]map[int]Event)
 var ddtv3IdEventTitleMap = map[int]string{
 	0:  "StartLive",
 	1:  "StopLive",
@@ -421,11 +421,16 @@ var ddtv3IdEventNameMap = map[int]string{
 	19: "直播间被封禁",
 }
 
-func UpdateDDTV3Settings(events map[string]Event) {
+func UpdateDDTV3Settings(path string, events map[string]Event) {
+	if ddtv3Settings[path] == nil {
+		ddtv3Settings[path] = make(map[int]Event)
+	}
 	for id, name := range ddtv3IdEventTitleMap {
 		event, ok := events[name]
 		if ok {
-			ddtv3Settings[id] = event
+			t := ddtv3Settings[path]
+			t[id] = event
+			ddtv3Settings[path] = t
 		}
 	}
 }

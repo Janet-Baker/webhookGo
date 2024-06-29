@@ -17,24 +17,21 @@ func init() {
 	})
 }
 
+var messageHandlers = map[string]func(*gin.Context){
+	"BililiveRecorder": webhookHandler.BililiveRecorderWebhookHandler,
+	"Blrec":            webhookHandler.BlrecWebhookHandler,
+	"DDTV3":            webhookHandler.DDTV3WebhookHandler,
+	"DDTV5":            webhookHandler.DDTV5WebhookHandler,
+}
+
 func main() {
 	config := loadConfig()
 	r := gin.Default()
-	if config.bililiveRecoder.enable {
-		log.Info("B站录播姬已启用，监听 http://" + config.listenAddress + config.bililiveRecoder.path)
-		r.POST(config.bililiveRecoder.path, webhookHandler.BililiveRecoderWebhookHandler)
-	}
-	if config.blrec.enable {
-		log.Info("blrec已启用，监听 http://" + config.listenAddress + config.blrec.path)
-		r.POST(config.blrec.path, webhookHandler.BlrecWebhookHandler)
-	}
-	if config.ddtv3.enable {
-		log.Info("DDTV3已启用，监听 http://" + config.listenAddress + config.ddtv3.path)
-		r.POST(config.ddtv3.path, webhookHandler.DDTV3WebhookHandler)
-	}
-	if config.ddtv5.enable {
-		log.Info("DDTV5已启用，监听 http://" + config.listenAddress + config.ddtv5.path)
-		r.POST(config.ddtv5.path, webhookHandler.DDTV5WebhookHandler)
+	for _, receiver := range config.receivers {
+		if function, ok := messageHandlers[receiver.Type]; ok {
+			log.Info(receiver.Type + "已启用，监听 http://" + config.listenAddress + receiver.Path)
+			r.POST(receiver.Path, function)
+		}
 	}
 
 	r.NoRoute(func(c *gin.Context) {

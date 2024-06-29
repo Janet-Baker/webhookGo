@@ -1,7 +1,6 @@
 package webhookHandler
 
 import (
-	"encoding/json"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -99,7 +98,7 @@ const (
 	FlvTaskStart = 40109
 )
 
-var ddtv5Settings = make(map[int]Event)
+var ddtv5Settings = make(map[string]map[int]Event)
 var ddtv5IdEventTitleMap = map[int]string{
 	ReadingConfigurationFile:            "ReadingConfigurationFile",
 	UpdateToConfigurationFile:           "UpdateToConfigurationFile",
@@ -183,16 +182,13 @@ var ddtv5IdEventNameMap = map[int]string{
 	FlvTaskStart:                        "FLV任务成功开始",
 }
 
-// 独立设置一个变量，方便测试插桩
-var ddtv5WebhookHandler func(content []byte) = ddtv5TaskRunner
-
 // TimeStopwatch
 // DDTV5 的开发者把C#的Stopwatch也序列化传出来了……
 type TimeStopwatch struct {
-	IsRunning           bool   `json:"IsRunning"`
 	Elapsed             string `json:"Elapsed"`
 	ElapsedMilliseconds int64  `json:"ElapsedMilliseconds"`
 	ElapsedTicks        int64  `json:"ElapsedTicks"`
+	IsRunning           bool   `json:"IsRunning"`
 }
 
 // LiveChatListener 在开播时(StartLiveEvent)这玩意可以为null的
@@ -326,10 +322,10 @@ type DDTV5Data struct {
 }
 
 type DDTV5MessageStruct struct {
-	Cmd     string     `json:"cmd"`
-	Code    int        `json:"code"`
+	Cmd     string     `json:"cmd" binding:"required"`
+	Code    int        `json:"code" binding:"required"`
 	Data    *DDTV5Data `json:"data"`
-	Message string     `json:"message"`
+	Message string     `json:"message" binding:"required"`
 }
 
 func (message *DDTV5MessageStruct) GetTitle() string {
@@ -421,16 +417,21 @@ func (message *DDTV5MessageStruct) SendToAllTargets() {
 	newMessage.SendToAllTargets()
 }
 
-func ddtv5TaskRunner(content []byte) {
+func DDTV5WebhookHandler(c *gin.Context) {
+	// 读取请求内容
 	var message DDTV5MessageStruct
-	err := json.Unmarshal(content, &message)
+	err := c.BindJSON(&message)
 	if err != nil {
-		log.Error("解析 DDTV5 webhook 请求失败：", err)
+		log.Error("读取 DDTV5 webhook 请求失败：", err)
+		c.Status(http.StatusBadRequest)
 		return
 	}
-	var eventSettings Event = ddtv5Settings[message.Code]
+	// return 200 at first
+	c.Status(http.StatusOK)
+	// DDTV5中，webhook请求是异步的，不再强烈要求立刻返回。
+	var eventSettings Event = ddtv5Settings[c.FullPath()][message.Code]
 	if eventSettings.Care {
-		log.Info("DDTV5", message.Message)
+		log.Info("DDTV5 ", message.Message)
 	}
 	if eventSettings.Notify {
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
@@ -451,24 +452,16 @@ func ddtv5TaskRunner(content []byte) {
 	}
 }
 
-func DDTV5WebhookHandler(c *gin.Context) {
-	// 读取请求内容
-	content, err := c.GetRawData()
-	if err != nil {
-		log.Errorf("读取 DDTV5 webhook 请求失败：%s", err.Error())
-		c.Status(http.StatusBadRequest)
-		return
+func UpdateDDTV5Settings(path string, events map[string]Event) {
+	if ddtv5Settings[path] == nil {
+		ddtv5Settings[path] = make(map[int]Event)
 	}
-	// return 200 at first
-	c.Status(http.StatusOK)
-	go ddtv5WebhookHandler(content)
-}
-
-func UpdateDDTV5Settings(events map[string]Event) {
 	for id, name := range ddtv5IdEventTitleMap {
 		event, ok := events[name]
 		if ok {
-			ddtv5Settings[id] = event
+			t := ddtv5Settings[path]
+			t[id] = event
+			ddtv5Settings[path] = t
 		}
 	}
 }

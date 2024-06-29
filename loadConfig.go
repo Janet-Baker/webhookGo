@@ -12,43 +12,25 @@ import (
 	"webhookGo/webhookHandler"
 )
 
-type options struct {
-	enable bool
-	path   string
-}
 type initStruct struct {
-	listenAddress   string
-	bililiveRecoder options
-	blrec           options
-	ddtv3           options
-	ddtv5           options
+	listenAddress string
+	receivers     []Receiver
 }
+
+type Receiver struct {
+	Type   string                          `json:"type"`
+	Enable bool                            `yaml:"enable"`
+	Path   string                          `yaml:"path"`
+	Events map[string]webhookHandler.Event `yaml:"events"`
+}
+
 type ConfigLoader struct {
 	Debug           bool                            `yaml:"debug"`
 	ListenAddress   string                          `yaml:"address"`
 	ContactBilibili bool                            `yaml:"contact_bilibili"`
 	Barks           []messageSender.BarkServer      `yaml:"Bark"`
 	WXWorkApps      []messageSender.WXWorkAppTarget `yaml:"WXWorkApp"`
-	BililiveRecoder struct {
-		Enable bool                            `yaml:"enable"`
-		Path   string                          `yaml:"path"`
-		Events map[string]webhookHandler.Event `yaml:"events"`
-	} `yaml:"BililiveRecoder"`
-	Blrec struct {
-		Enable bool                            `yaml:"enable"`
-		Path   string                          `yaml:"path"`
-		Events map[string]webhookHandler.Event `yaml:"events"`
-	} `yaml:"Blrec"`
-	DDTV3 struct {
-		Enable bool                            `yaml:"enable"`
-		Path   string                          `yaml:"path"`
-		Events map[string]webhookHandler.Event `yaml:"events"`
-	} `yaml:"DDTV3"`
-	DDTV5 struct {
-		Enable bool                            `yaml:"enable"`
-		Path   string                          `yaml:"path"`
-		Events map[string]webhookHandler.Event `yaml:"events"`
-	} `yaml:"DDTV5"`
+	Receivers       []Receiver                      `yaml:"Receivers"`
 }
 
 func loadConfig() initStruct {
@@ -79,12 +61,18 @@ func loadConfig() initStruct {
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	if !(configuration.BililiveRecoder.Enable || configuration.Blrec.Enable || configuration.DDTV3.Enable) {
-		log.Fatal("没有关注的事件")
+
+	var enabledReceivers = 0
+	for i := 0; i < len(configuration.Receivers); i++ {
+		if configuration.Receivers[i].Enable {
+			enabledReceivers++
+		}
+	}
+	if enabledReceivers == 0 {
+		log.Fatal("没有启用任何接收器，程序将无法接收任何请求。")
 	}
 
-	var barkCount int
-	var weWorkCount int
+	var senderCount int
 	if len(configuration.Barks) > 0 {
 		for _, bark := range configuration.Barks {
 			if bark.BarkSecrets == "" {
@@ -94,7 +82,7 @@ func loadConfig() initStruct {
 				bark.ServerUrl = "https://api.day.app/"
 			}
 			bark.RegisterBarkServer()
-			barkCount++
+			senderCount++
 		}
 	}
 	if len(configuration.WXWorkApps) > 0 {
@@ -106,26 +94,16 @@ func loadConfig() initStruct {
 				app.ToUser = "@all"
 			}
 			app.RegisterWXWorkApp()
-			weWorkCount++
+			senderCount++
 		}
 	}
-	if barkCount == 0 && weWorkCount == 0 {
+	if senderCount == 0 {
 		log.Warn("没有有效的推送目标")
-		for k, v := range configuration.BililiveRecoder.Events {
-			v.Notify = false
-			configuration.BililiveRecoder.Events[k] = v
-		}
-		for k, v := range configuration.Blrec.Events {
-			v.Notify = false
-			configuration.Blrec.Events[k] = v
-		}
-		for k, v := range configuration.DDTV3.Events {
-			v.Notify = false
-			configuration.DDTV3.Events[k] = v
-		}
-		for k, v := range configuration.DDTV5.Events {
-			v.Notify = false
-			configuration.DDTV5.Events[k] = v
+		for i := 0; i < len(configuration.Receivers); i++ {
+			for k, event := range configuration.Receivers[i].Events {
+				event.Notify = false
+				configuration.Receivers[i].Events[k] = event
+			}
 		}
 	}
 
@@ -135,27 +113,34 @@ func loadConfig() initStruct {
 	}
 	if !configuration.ContactBilibili {
 		log.Warn("不允许访问Bilibili服务器，将无法获取直播间封禁状态和主播头像。")
+		bilibiliInfo.ContactBilibili = false
+		/*err = os.Setenv("ContactBilibili", "false")
+		if err != nil {
+			log.Fatal("设置环境变量失败!", err)
+		}*/
 	}
-	bilibiliInfo.ContactBilibili = configuration.ContactBilibili
+
 	config := initStruct{
-		listenAddress:   configuration.ListenAddress,
-		bililiveRecoder: options{enable: configuration.BililiveRecoder.Enable, path: configuration.BililiveRecoder.Path},
-		blrec:           options{enable: configuration.Blrec.Enable, path: configuration.Blrec.Path},
-		ddtv3:           options{enable: configuration.DDTV3.Enable, path: configuration.DDTV3.Path},
-		ddtv5:           options{enable: configuration.DDTV5.Enable, path: configuration.DDTV5.Path},
+		listenAddress: configuration.ListenAddress,
 	}
-	if configuration.BililiveRecoder.Enable {
-		webhookHandler.UpdateBililiveRecoderSettings(configuration.BililiveRecoder.Events)
+	for i := 0; i < len(configuration.Receivers); i++ {
+		if configuration.Receivers[i].Enable && configuration.Receivers[i].Type != "" {
+			config.receivers = append(config.receivers, configuration.Receivers[i])
+		}
 	}
-	if configuration.Blrec.Enable {
-		webhookHandler.UpdateBlrecSettings(configuration.Blrec.Events)
+	for i := 0; i < len(config.receivers); i++ {
+		switch config.receivers[i].Type {
+		case "BililiveRecoder":
+			webhookHandler.UpdateBililiveRecorderSettings(config.receivers[i].Path, config.receivers[i].Events)
+		case "Blrec":
+			webhookHandler.UpdateBlrecSettings(config.receivers[i].Path, config.receivers[i].Events)
+		case "DDTV3":
+			webhookHandler.UpdateDDTV3Settings(config.receivers[i].Path, config.receivers[i].Events)
+		case "DDTV5":
+			webhookHandler.UpdateDDTV5Settings(config.receivers[i].Path, config.receivers[i].Events)
+		}
 	}
-	if configuration.DDTV3.Enable {
-		webhookHandler.UpdateDDTV3Settings(configuration.DDTV3.Events)
-	}
-	if configuration.DDTV5.Enable {
-		webhookHandler.UpdateDDTV5Settings(configuration.DDTV5.Events)
-	}
+
 	return config
 }
 

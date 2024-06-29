@@ -13,7 +13,7 @@ import (
 	"webhookGo/messageSender"
 )
 
-func bililiveRecoderTaskRunner(content []byte) {
+func bililiveRecorderTaskRunner(path string, content []byte) {
 	log.Trace(string(content))
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
@@ -22,10 +22,10 @@ func bililiveRecoderTaskRunner(content []byte) {
 	}
 	webhookId := string(getter.GetStringBytes("EventId"))
 	if len(webhookId) < 36 {
-		log.Warnln("BililiveRecoder webhook 请求的 EventId 读取失败", webhookId)
+		log.Warnln("BililiveRecorder webhook 请求的 EventId 读取失败", webhookId)
 		return
 	}
-	log.Debug(webhookId, "收到 BililiveRecoder webhook 请求")
+	log.Debug(webhookId, "收到 BililiveRecorder webhook 请求")
 
 	// 判断是否是重复的webhook请求
 	if registerId(webhookId) {
@@ -34,7 +34,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 
 	// 判断事件类型
 	eventType := string(getter.GetStringBytes("EventType"))
-	eventSettings, _ := bililiveRecoderSettings[eventType]
+	eventSettings, _ := bililiveRecorderSettings[path][eventType]
 	switch eventType {
 	//录制开始 SessionStarted
 	case "SessionStarted":
@@ -48,7 +48,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" B站录播姬 ")
-			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString(bililiveRecorderEventName[eventType])
 			logBuilder.WriteString("：")
 			logBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 			log.Info(logBuilder.String())
@@ -57,7 +57,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var msgTitleBuilder strings.Builder
 			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "Name"))
 			msgTitleBuilder.WriteString(" ")
-			msgTitleBuilder.WriteString(bililiveRecoderEventName[eventType])
+			msgTitleBuilder.WriteString(bililiveRecorderEventName[eventType])
 			var msgContentBuilder strings.Builder
 			msgContentBuilder.WriteString("- 主播：[")
 			msgContentBuilder.Write(getter.GetStringBytes("EventData", "Name"))
@@ -130,7 +130,7 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" B站录播姬 ")
-			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString(bililiveRecorderEventName[eventType])
 			logBuilder.WriteString(" ")
 			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
 			log.Info(logBuilder.String())
@@ -165,14 +165,14 @@ func bililiveRecoderTaskRunner(content []byte) {
 			var logBuilder strings.Builder
 			logBuilder.WriteString(webhookId)
 			logBuilder.WriteString(" B站录播姬 ")
-			logBuilder.WriteString(bililiveRecoderEventName[eventType])
+			logBuilder.WriteString(bililiveRecorderEventName[eventType])
 			logBuilder.WriteString(" ")
 			logBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
 			log.Info(logBuilder.String())
 		}
 		if eventSettings.Notify {
 			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.WriteString(bililiveRecoderEventName[eventType])
+			msgTitleBuilder.WriteString(bililiveRecorderEventName[eventType])
 			msgTitleBuilder.WriteString(" ")
 			msgTitleBuilder.Write(getter.GetStringBytes("EventData", "RelativePath"))
 			var msgContentBuilder strings.Builder
@@ -222,8 +222,8 @@ func bililiveRecoderTaskRunner(content []byte) {
 	}
 }
 
-// BililiveRecoderWebhookHandler 处理 BililiveRecoder 的 webhook 请求
-func BililiveRecoderWebhookHandler(c *gin.Context) {
+// BililiveRecorderWebhookHandler 处理 BililiveRecoder 的 webhook 请求
+func BililiveRecorderWebhookHandler(c *gin.Context) {
 	// 读取请求内容
 	content, err := c.GetRawData()
 	if err != nil {
@@ -233,10 +233,10 @@ func BililiveRecoderWebhookHandler(c *gin.Context) {
 	}
 	// return 200 at first
 	c.Status(http.StatusOK)
-	go bililiveRecoderTaskRunner(content)
+	go bililiveRecorderTaskRunner(c.FullPath(), content)
 }
 
-var bililiveRecoderEventName = map[string]string{
+var bililiveRecorderEventName = map[string]string{
 	"SessionStarted": "录制开始",
 	"FileOpening":    "文件打开",
 	"FileClosed":     "文件关闭",
@@ -245,8 +245,8 @@ var bililiveRecoderEventName = map[string]string{
 	"StreamEnded":    "直播结束",
 }
 
-var bililiveRecoderSettings map[string]Event
+var bililiveRecorderSettings = make(map[string]map[string]Event)
 
-func UpdateBililiveRecoderSettings(events map[string]Event) {
-	bililiveRecoderSettings = events
+func UpdateBililiveRecorderSettings(path string, events map[string]Event) {
+	bililiveRecorderSettings[path] = events
 }

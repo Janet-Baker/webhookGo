@@ -20,236 +20,238 @@ WXWorkApp:
     agentId: ""
     to_user: "@all"
 
-BililiveRecoder:
-  # enable 是否启用该服务
-  enable: true
-  # path 该服务的访问路径
-  path: '/bililiverecoder'
-  # events 该服务监听的事件，事件种类见 https://rec.danmuji.org/reference/webhook/#webhook-v2
-  events:
-    SessionStarted:
-      # care 是否在控制台提示收到了该事件
-      care: false
-      # notify 是否推送该事件
-      notify: false
-      # have_command 是否执行命令
-      have_command: false
-      # exec_command 执行的命令
-      exec_command: ""
-    FileOpening:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    FileClosed:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SessionEnded:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    StreamStarted:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    StreamEnded:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-Blrec:
-  enable: true
-  path: '/blrec'
-  # 事件种类及可提取的信息见 https://github.com/acgnhiki/blrec/wiki/Webhook
-  events:
-    LiveBeganEvent:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    LiveEndedEvent:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    RoomChangeEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RecordingStartedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RecordingFinishedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RecordingCancelledEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    VideoFileCreatedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    VideoFileCompletedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    DanmakuFileCreatedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    DanmakuFileCompletedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RawDanmakuFileCreatedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RawDanmakuFileCompletedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    VideoPostprocessingCompletedEvent:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SpaceNoEnoughEvent:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    Error:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-DDTV3:
-  enable: true
-  path: "/ddtv3"
-  # 事件种类见 https://ddtv.pro/AdvancedFeatures/Webhook.html#%E4%BA%8B%E4%BB%B6%E7%B1%BB%E5%9E%8B
-  events:
-    StartLive:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    StopLive:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    StartRec:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RecComplete:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    CancelRec:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    TranscodingComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SaveDanmuComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SaveSCComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SaveGiftComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    SaveGuardComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    RunShellComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    DownloadEndMissionSuccess:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    SpaceIsInsufficientWarn:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    LoginFailure:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    LoginWillExpireSoon:
-      care: true
-      notify: false
-      have_command: false
-      exec_command: ""
-    UpdateAvailable:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    ShellExecutionComplete:
-      care: false
-      notify: false
-      have_command: false
-      exec_command: ""
-    WarnedByAdmin:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    LiveCutOff:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-    RoomLocked:
-      care: true
-      notify: true
-      have_command: false
-      exec_command: ""
-DDTV5:
+Receivers:
+  - type: "BililiveRecorder"
+    # enable 是否启用该服务
+    enable: true
+    # path 该服务的访问路径
+    path: '/bililiverecorder'
+    # events 该服务监听的事件，事件种类见 https://rec.danmuji.org/reference/webhook/#webhook-v2
+    events:
+      SessionStarted:
+        # care 是否在控制台提示收到了该事件
+        care: false
+        # notify 是否推送该事件
+        notify: false
+        # have_command 是否执行命令
+        have_command: false
+        # exec_command 执行的命令
+        exec_command: ""
+      FileOpening:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      FileClosed:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SessionEnded:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      StreamStarted:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      StreamEnded:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+  - type: "Blrec"
+    enable: true
+    path: '/blrec'
+    # 事件种类及可提取的信息见 https://github.com/acgnhiki/blrec/wiki/Webhook
+    events:
+      LiveBeganEvent:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      LiveEndedEvent:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      RoomChangeEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RecordingStartedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RecordingFinishedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RecordingCancelledEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      VideoFileCreatedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      VideoFileCompletedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      DanmakuFileCreatedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      DanmakuFileCompletedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RawDanmakuFileCreatedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RawDanmakuFileCompletedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      VideoPostprocessingCompletedEvent:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SpaceNoEnoughEvent:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      Error:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+  - type: "DDTV3"
+    enable: true
+    path: "/ddtv3"
+    # 事件种类见 https://ddtv.pro/AdvancedFeatures/Webhook.html#%E4%BA%8B%E4%BB%B6%E7%B1%BB%E5%9E%8B
+    events:
+      StartLive:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      StopLive:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      StartRec:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RecComplete:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      CancelRec:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      TranscodingComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SaveDanmuComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SaveSCComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SaveGiftComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      SaveGuardComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      RunShellComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      DownloadEndMissionSuccess:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      SpaceIsInsufficientWarn:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      LoginFailure:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      LoginWillExpireSoon:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
+      UpdateAvailable:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      ShellExecutionComplete:
+        care: false
+        notify: false
+        have_command: false
+        exec_command: ""
+      WarnedByAdmin:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      LiveCutOff:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+      RoomLocked:
+        care: true
+        notify: true
+        have_command: false
+        exec_command: ""
+  - type: "DDTV5"
     enable: true
     path: "/ddtv5"
     events:
+      # 事件种类见 https://github.com/CHKZL/DDTV/blob/master/Core/LogModule/Opcode.cs
       ReadingConfigurationFile:
         care: false
         notify: false
@@ -276,17 +278,17 @@ DDTV5:
         have_command: false
         exec_command: ""
       UpdateDetect:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       SuccessfullyAddedRoom:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       FailedToAddRoomConfiguration:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -306,22 +308,22 @@ DDTV5:
         have_command: false
         exec_command: ""
       SuccessfullyDeletedRoom:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       FailedToDeleteRoom:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       CancelRecordingSuccessful:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       CancelRecordingFail:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -336,12 +338,12 @@ DDTV5:
         have_command: false
         exec_command: ""
       SuccessfullyAddedRecordingTask:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       FailedToAddRecordingTask:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -356,12 +358,12 @@ DDTV5:
         have_command: false
         exec_command: ""
       TriggerLoginAgain:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       LoginSuccessful:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -381,7 +383,7 @@ DDTV5:
         have_command: false
         exec_command: ""
       QrCodeWaitingForScann:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -406,37 +408,37 @@ DDTV5:
         have_command: false
         exec_command: ""
       StartBroadcastingReminder:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       StartRecording:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       RecordingEnd:
-        care: false
-        notify: false
-        have_command: false
-        exec_command: ""
-      StopLiveEvent:
         care: true
         notify: true
         have_command: false
         exec_command: ""
+      StopLiveEvent:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
       Reconnect:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       HlsTaskStart:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       FlvTaskStart:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
