@@ -48,6 +48,7 @@ func (message *GeneralPushMessage) SendToAllTargets() {
 
 type MessageServer interface {
 	SendMessage(message Message)
+	RegisterServer()
 }
 
 var servers []MessageServer

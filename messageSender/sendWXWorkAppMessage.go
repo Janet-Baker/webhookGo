@@ -34,7 +34,7 @@ type WXWorkAppTarget struct {
 	token     *wxWorkAppToken
 }
 
-func (app *WXWorkAppTarget) RegisterWXWorkApp() {
+func (app *WXWorkAppTarget) RegisterServer() {
 	app.token = new(wxWorkAppToken)
 	RegisterMessageServer(app)
 }

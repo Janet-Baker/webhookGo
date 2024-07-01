@@ -81,7 +81,7 @@ func loadConfig() initStruct {
 			if bark.ServerUrl == "" {
 				bark.ServerUrl = "https://api.day.app/"
 			}
-			bark.RegisterBarkServer()
+			bark.RegisterServer()
 			senderCount++
 		}
 	}
@@ -93,7 +93,7 @@ func loadConfig() initStruct {
 			if app.ToUser == "" {
 				app.ToUser = "@all"
 			}
-			app.RegisterWXWorkApp()
+			app.RegisterServer()
 			senderCount++
 		}
 	}
