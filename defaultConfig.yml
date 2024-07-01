@@ -198,7 +198,7 @@ Receivers:
         have_command: false
         exec_command: ""
       RunShellComplete:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -223,12 +223,12 @@ Receivers:
         have_command: false
         exec_command: ""
       UpdateAvailable:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       ShellExecutionComplete:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -258,7 +258,7 @@ Receivers:
         have_command: false
         exec_command: ""
       UpdateToConfigurationFile:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -268,12 +268,12 @@ Receivers:
         have_command: false
         exec_command: ""
       UpdateToRoomFile:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       ModifyConfiguration:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -293,17 +293,17 @@ Receivers:
         have_command: false
         exec_command: ""
       ModifyRoomBulletScreenConfiguration:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       ModifyRoomPromptConfiguration:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       ManuallyTriggeringRecordingTasks:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -328,12 +328,12 @@ Receivers:
         have_command: false
         exec_command: ""
       SuccessfullyTriggeredQuickCut:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       TriggerQuickCutFail:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -348,12 +348,12 @@ Receivers:
         have_command: false
         exec_command: ""
       UserConsentAgreement:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       UserDoesNotAgreeToAgreement:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -378,7 +378,7 @@ Receivers:
         have_command: false
         exec_command: ""
       ScanCodeConfirmation:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
@@ -388,17 +388,17 @@ Receivers:
         have_command: false
         exec_command: ""
       ScannedCodeWaitingForConfirmation:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       QrCodeExpir:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""
       SaveBulletScreenFile:
-        care: false
+        care: true
         notify: false
         have_command: false
         exec_command: ""

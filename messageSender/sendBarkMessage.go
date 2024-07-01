@@ -13,7 +13,7 @@ type BarkServer struct {
 	BarkSecrets string `yaml:"secrets"`
 }
 
-func (barkServer *BarkServer) RegisterBarkServer() {
+func (barkServer *BarkServer) RegisterServer() {
 	RegisterMessageServer(barkServer)
 }
 
