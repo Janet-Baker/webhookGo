@@ -11,56 +11,32 @@ import (
 )
 
 type Cache struct {
-	m     map[string]int64
-	mutex sync.RWMutex
+	sync.Map
 }
 
+const expireTime = int64(time.Hour) * 24
+
+// NewAutoCleanupCache 创建一个Cache,自动清理过期缓存
 func NewAutoCleanupCache() *Cache {
-	c := &Cache{
-		m: make(map[string]int64),
-	}
+	var c = &Cache{}
 	go c.autoCleanup()
 	return c
 }
 
-func (c *Cache) Add(id string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.m[id] = time.Now().Unix()
-}
-
-func (c *Cache) Get(id string) (int64, bool) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	val, ok := c.m[id]
-	return val, ok
-}
-
-func (c *Cache) Exist(id string) bool {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	_, ok := c.m[id]
-	return ok
-}
-
-func (c *Cache) Delete(id string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	delete(c.m, id)
-}
-
+// CleanUp 遍历缓存，删除过期的缓存
 func (c *Cache) CleanUp() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	for id, t := range c.m {
-		if time.Now().Unix()-t >= 3600 {
-			delete(c.m, id)
+	c.Range(func(key, value interface{}) bool {
+		if time.Now().Unix()-value.(int64) > expireTime {
+			c.Delete(key.(string))
 		}
-	}
+		return true
+	})
 }
 
+// autoCleanup 定时清理过期缓存
+// autoCleanup 内维持了一个*time.Ticker，每隔expireTime时间清理一次过期缓存
 func (c *Cache) autoCleanup() {
-	ticker := time.NewTicker(time.Hour)
+	ticker := time.NewTicker(time.Duration(expireTime))
 	for range ticker.C {
 		c.CleanUp()
 	}
@@ -68,21 +44,18 @@ func (c *Cache) autoCleanup() {
 
 var idCache = NewAutoCleanupCache()
 
-func registerId(id string) (exist bool) {
-	exist = idCache.Exist(id)
-	if exist {
-		return
-	}
-
-	idCache.Add(id)
+// registerId 注册一个ID，如果ID已经存在则返回true
+func registerId(id string) (alreadyExist bool) {
+	_, alreadyExist = idCache.LoadOrStore(id, time.Now().Unix())
 	return
 }
 
+// Event 每个事件的设置项
 type Event struct {
-	Care        bool   `yaml:"care"`
-	Notify      bool   `yaml:"notify"`
-	HaveCommand bool   `yaml:"have_command"`
-	ExecCommand string `yaml:"exec_command"`
+	Care        bool   `yaml:"care"`         // 是否在控制台打印事件
+	Notify      bool   `yaml:"notify"`       // 是否向客户端推送消息
+	HaveCommand bool   `yaml:"have_command"` // 是否需要执行命令
+	ExecCommand string `yaml:"exec_command"` // 执行的命令
 }
 
 // 定义一个字符串数组，表示不同的单位
