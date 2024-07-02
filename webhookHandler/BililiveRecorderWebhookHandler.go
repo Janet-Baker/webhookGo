@@ -26,15 +26,16 @@ type BililiveRecorderMessageStruct struct {
 		Streaming        bool   `json:"Streaming"`
 		DanmakuConnected bool   `json:"DanmakuConnected"`
 		// 以下内容只有特定事件才有
-		SessionId     string  `json:"SessionId"`
-		RelativePath  string  `json:"RelativePath"`
-		FileOpenTime  string  `json:"FileOpenTime"`
-		FileCloseTime string  `json:"FileCloseTime"`
-		FileSize      int64   `json:"FileSize"`
-		Duration      float64 `json:"Duration"`
+		SessionId     string  `json:"SessionId,omitempty"`
+		RelativePath  string  `json:"RelativePath,omitempty"`
+		FileOpenTime  string  `json:"FileOpenTime,omitempty"`
+		FileCloseTime string  `json:"FileCloseTime,omitempty"`
+		FileSize      int64   `json:"FileSize,omitempty"`
+		Duration      float64 `json:"Duration,omitempty"`
 		// 下播时更新
 		isLocked bool
 		lockTill int64
+		avatar   string
 	} `json:"EventData"`
 }
 
@@ -101,7 +102,7 @@ func (message *BililiveRecorderMessageStruct) GetContent() string {
 }
 
 func (message *BililiveRecorderMessageStruct) GetIconURL() string {
-	return bilibiliInfo.GetAvatarByRoomID(message.EventData.RoomId)
+	return message.EventData.avatar
 }
 
 func (message *BililiveRecorderMessageStruct) SendToAllTargets() {
@@ -129,7 +130,16 @@ func BililiveRecorderWebhookHandler(c *gin.Context) {
 	if registerId(message.EventId) {
 		return
 	}
-
+	// event check
+	if _, ok := bililiveRecorderEventName[message.EventType]; !ok {
+		b, e := c.GetRawData()
+		s := string(b)
+		if len(s) > 128 {
+			s = s[:128]
+		}
+		log.Warn("未知事件类型：", message.EventType, '\n', s, e)
+		return
+	}
 	var eventSettings Event = bililiveRecorderSettings[c.FullPath()][message.EventType]
 	if eventSettings.Care {
 		log.Info("BililiveRecorder", bililiveRecorderEventName[message.EventType])
@@ -138,6 +148,7 @@ func BililiveRecorderWebhookHandler(c *gin.Context) {
 		if message.EventType == "StreamEnded" {
 			message.EventData.isLocked, message.EventData.lockTill = bilibiliInfo.IsRoomLocked(message.EventData.RoomId)
 		}
+		message.EventData.avatar, _ = bilibiliInfo.GetAvatarByRoomID(message.EventData.RoomId)
 		message.SendToAllTargets()
 	}
 	if eventSettings.HaveCommand {

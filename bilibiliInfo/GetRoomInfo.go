@@ -250,16 +250,18 @@ var (
 	// avatarDict = map[uid]avatar 根据uid存储头像
 	avatarDict = sync.Map{}
 	// roomidUidDict = map[roomid]uid 根据roomid存储uid
-	roomidUidDict      = sync.Map{}
-	newGetInfoApiLock  = sync.Mutex{}
-	newRoomInitApiLock = sync.Mutex{}
-	newMasterInfoLock  = sync.Mutex{}
+	roomidUidDict   = sync.Map{}
+	uidUsernameDict = sync.Map{}
 	// roomidGetInfoDict = map[roomid]GetInfo 根据roomid存储房间信息
 	roomidGetInfoDict = sync.Map{}
 	// roomidRoomInitDict = map[roomid]RoomInit 根据roomid存储房间信息
 	roomidRoomInitDict = sync.Map{}
 	// uidMasterInfoDict = map[uid]MasterInfo 根据uid存储主播信息
 	uidMasterInfoDict = sync.Map{}
+
+	newGetInfoApiLock  = sync.Mutex{}
+	newRoomInitApiLock = sync.Mutex{}
+	newMasterInfoLock  = sync.Mutex{}
 )
 
 const expirePeriod = 3600
@@ -281,6 +283,9 @@ func (getInfo *GetInfo) isExpired() bool {
 }
 
 func forceGetInfo(roomId int64) (GetInfo, error) {
+	if roomId <= 0 {
+		return GetInfo{}, errors.New("roomId 不可为 0")
+	}
 	//	https://api.live.bilibili.com/room/v1/Room/get_info
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/get_info?room_id=" + strconv.FormatInt(roomId, 10)
 	var getInfoResult GetInfo
@@ -299,6 +304,9 @@ func forceGetInfo(roomId int64) (GetInfo, error) {
 	return getInfoResult, nil
 }
 func forceRoomInit(roomId int64) (RoomInit, error) {
+	if roomId <= 0 {
+		return RoomInit{}, errors.New("roomId 不可为 0")
+	}
 	// 构造请求
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatInt(roomId, 10)
 	var roomInitResult RoomInit
@@ -318,6 +326,9 @@ func forceRoomInit(roomId int64) (RoomInit, error) {
 	return roomInitResult, nil
 }
 func forceMasterInfo(uid int64) (MasterInfo, error) {
+	if uid <= 0 {
+		return MasterInfo{}, errors.New("uid 不可为 0")
+	}
 	// 构造请求
 	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatInt(uid, 10)
 	var masterInfoResult MasterInfo
@@ -337,7 +348,10 @@ func forceMasterInfo(uid int64) (MasterInfo, error) {
 	uidMasterInfoDict.Store(uid, masterInfoResult)
 	return masterInfoResult, nil
 }
-func getInfo(roomId int64) (GetInfo, error) {
+func getInfo(roomId int64) (*GetInfo, error) {
+	if !ContactBilibili {
+		return nil, http.ErrNotSupported
+	}
 	iGetInfo, ok := roomidGetInfoDict.Load(roomId)
 	if ok {
 		getInfoResult := iGetInfo.(GetInfo)
@@ -359,7 +373,7 @@ func getInfo(roomId int64) (GetInfo, error) {
 			iGetInfo, _ = roomidGetInfoDict.Load(roomId)
 			getInfoResult = iGetInfo.(GetInfo)
 		}
-		return getInfoResult, nil
+		return &getInfoResult, nil
 	} else {
 		newGetInfoApiLock.Lock()
 		var needUnlock = true
@@ -377,18 +391,21 @@ func getInfo(roomId int64) (GetInfo, error) {
 			// 初次获取
 			getInfoResult, err := forceGetInfo(roomId)
 			if err != nil {
-				return GetInfo{}, err
+				return nil, err
 			}
-			return getInfoResult, nil
+			return &getInfoResult, nil
 		}
 	}
 }
-func roomInit(roomId int64) (RoomInit, error) {
+func roomInit(roomId int64) (*RoomInit, error) {
+	if !ContactBilibili {
+		return nil, http.ErrNotSupported
+	}
 	iRoomInit, ok := roomidRoomInitDict.Load(roomId)
 	if ok {
 		roomInitResult := iRoomInit.(RoomInit)
 		// 存在，检查是否过期
-		for roomInitResult.isExpired() {
+		for roomInitResult.isExpired() && roomInitResult.lastUpdate != 0 {
 			// 过期？拿写锁再看一次
 			func() {
 				roomInitResult.rwMutex.Lock()
@@ -396,16 +413,13 @@ func roomInit(roomId int64) (RoomInit, error) {
 				iRoomInit, _ = roomidRoomInitDict.Load(roomId)
 				roomInitResult2 := iRoomInit.(RoomInit)
 				if time.Now().Unix()-roomInitResult2.lastUpdate > expirePeriod {
-					_, err := forceRoomInit(roomId)
-					if err != nil {
-						return
-					}
+					_, _ = forceRoomInit(roomId)
 				}
 			}()
 			iRoomInit, _ = roomidRoomInitDict.Load(roomId)
 			roomInitResult = iRoomInit.(RoomInit)
 		}
-		return roomInitResult, nil
+		return &roomInitResult, nil
 	} else {
 		newRoomInitApiLock.Lock()
 		var needUnlock = true
@@ -423,13 +437,16 @@ func roomInit(roomId int64) (RoomInit, error) {
 			// 初次获取
 			roomInitResult, err := forceRoomInit(roomId)
 			if err != nil {
-				return RoomInit{}, err
+				return nil, err
 			}
-			return roomInitResult, nil
+			return &roomInitResult, nil
 		}
 	}
 }
-func masterInfo(uid int64) (MasterInfo, error) {
+func masterInfo(uid int64) (*MasterInfo, error) {
+	if !ContactBilibili {
+		return nil, http.ErrNotSupported
+	}
 	iMasterInfo, ok := uidMasterInfoDict.Load(uid)
 	if ok {
 		masterInfoResult := iMasterInfo.(MasterInfo)
@@ -451,7 +468,7 @@ func masterInfo(uid int64) (MasterInfo, error) {
 			iMasterInfo, _ = uidMasterInfoDict.Load(uid)
 			masterInfoResult = iMasterInfo.(MasterInfo)
 		}
-		return masterInfoResult, nil
+		return &masterInfoResult, nil
 	} else {
 		newMasterInfoLock.Lock()
 		var needUnlock = true
@@ -469,17 +486,19 @@ func masterInfo(uid int64) (MasterInfo, error) {
 			// 初次获取
 			masterInfoResult, err := forceMasterInfo(uid)
 			if err != nil {
-				return MasterInfo{}, err
+				return nil, err
 			}
-			return masterInfoResult, nil
+			return &masterInfoResult, nil
 		}
 	}
 }
 
 // GetUidByRoomid 通过roomid获取uid
 func GetUidByRoomid(roomId int64) (int64, error) {
+	if roomId == 0 {
+		return 0, errors.New("roomid 不应该为 0")
+	}
 	// 检查缓存的字典中是否已经存在
-	//uid, ok := roomidUidDict[roomId]
 	var uid int64
 	iuid, ok := roomidUidDict.Load(roomId)
 	if ok {
@@ -522,8 +541,10 @@ func GetUidByRoomid(roomId int64) (int64, error) {
 
 // GetAvatarByUid 通过uid获取头像
 func GetAvatarByUid(uid int64) (string, error) {
+	if uid == 0 {
+		return "", errors.New("uid 不应该为 0")
+	}
 	// 检查缓存的字典中是否已经存在
-	//avatar, ok := avatarDict[uid]
 	var avatar string
 	iavatar, ok := avatarDict.Load(uid)
 	if ok {
@@ -532,9 +553,6 @@ func GetAvatarByUid(uid int64) (string, error) {
 		return avatar, nil
 	}
 	// 不存在，重新获取
-	if !ContactBilibili {
-		return "", nil
-	}
 	// 构造请求 "https://api.live.bilibili.com/live_user/v1/Master/info?uid="+uid
 	masterInfoResult, err := masterInfo(uid)
 	if err != nil {
@@ -551,24 +569,67 @@ func GetAvatarByUid(uid int64) (string, error) {
 }
 
 // GetAvatarByRoomID 通过roomid获取头像
-func GetAvatarByRoomID(roomId int64) string {
+func GetAvatarByRoomID(roomId int64) (string, error) {
+	if roomId == 0 {
+		return "", errors.New("roomid 不应该为 0")
+	}
 	uid, err := GetUidByRoomid(roomId)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	avatar, err := GetAvatarByUid(uid)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return avatar
+	return avatar, nil
+}
+
+// GetUsernameByRoomId 通过uid获取用户名
+func GetUsernameByUid(uid int64) (string, error) {
+	if uid == 0 {
+		return "", errors.New("uid 不应该为 0")
+	}
+	// 检查缓存的字典中是否已经存在
+	var username string
+	iusername, ok := uidUsernameDict.Load(uid)
+	if ok {
+		username = iusername.(string)
+		// 存在，直接返回
+		return username, nil
+	}
+	// 不存在，重新获取
+	masterInfoResult, err := masterInfo(uid)
+	if err != nil {
+		return "", err
+	}
+	username = masterInfoResult.Data.Info.Uname
+	//uidUsernameDict[uid] = username
+	uidUsernameDict.Store(uid, username)
+	return username, nil
+}
+
+// GetUsernameByRoomId 通过roomid获取用户名
+func GetUsernameByRoomId(roomId int64) (string, error) {
+	if roomId == 0 {
+		return "", errors.New("roomid 不应该为 0")
+	}
+	uid, err := GetUidByRoomid(roomId)
+	if err != nil {
+		return "", err
+	}
+	username, err := GetUsernameByUid(uid)
+	if err != nil {
+		return "", err
+	}
+	return username, nil
 }
 
 // IsRoomLocked 检查主播房间是否被封禁 返回状态和时间戳
 func IsRoomLocked(roomId int64) (isLocked bool, lockTill int64) {
-	// 构造请求
-	if !ContactBilibili {
+	if roomId == 0 {
 		return false, 0
 	}
+	// 构造请求
 	roomInitResult, err := forceRoomInit(roomId)
 	if err != nil {
 		log.Error("请求房间信息 失败", err.Error())
@@ -585,6 +646,9 @@ func IsRoomLocked(roomId int64) (isLocked bool, lockTill int64) {
 }
 
 func GetAreaV2ParentName(roomId int64) string {
+	if roomId == 0 {
+		return "获取失败:roomId=0"
+	}
 	if !ContactBilibili {
 		return "未知"
 	}
@@ -595,6 +659,9 @@ func GetAreaV2ParentName(roomId int64) string {
 	return getInfoResult.Data.ParentAreaName
 }
 func GetAreaV2Name(roomId int64) string {
+	if roomId == 0 {
+		return "获取失败:roomId=0"
+	}
 	if !ContactBilibili {
 		return "未知"
 	}
@@ -605,6 +672,9 @@ func GetAreaV2Name(roomId int64) string {
 	return getInfoResult.Data.AreaName
 }
 func GetLiveStatusString(roomId int64) (liveStatus int, liveTime string) {
+	if roomId == 0 {
+		return 0, "获取失败:roomId=0"
+	}
 	if !ContactBilibili {
 		return 0, "未知"
 	}
@@ -615,6 +685,9 @@ func GetLiveStatusString(roomId int64) (liveStatus int, liveTime string) {
 	return getInfoResult.Data.LiveStatus, getInfoResult.Data.LiveTime
 }
 func GetLiveStatus(roomId int64) (liveStatus int, liveTime int64) {
+	if roomId == 0 {
+		return 0, 0
+	}
 	iRoomInit, ok := roomidRoomInitDict.Load(roomId)
 	if ok {
 		roomInitResult := iRoomInit.(RoomInit)
@@ -624,9 +697,6 @@ func GetLiveStatus(roomId int64) (liveStatus int, liveTime int64) {
 	}
 
 	// 不存在，重新获取
-	if !ContactBilibili {
-		return 0, 0
-	}
 	// 构造请求
 	roomInitResult, err := roomInit(roomId)
 	if err != nil {
