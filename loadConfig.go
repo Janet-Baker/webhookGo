@@ -74,26 +74,26 @@ func loadConfig() initStruct {
 
 	var senderCount int
 	if len(configuration.Barks) > 0 {
-		for _, bark := range configuration.Barks {
-			if bark.BarkSecrets == "" {
+		for i := 0; i < len(configuration.Barks); i++ {
+			if configuration.Barks[i].DeviceKey == "" {
 				continue
 			}
-			if bark.ServerUrl == "" {
-				bark.ServerUrl = "https://api.day.app/"
+			if configuration.Barks[i].ServerUrl == "" {
+				configuration.Barks[i].ServerUrl = "https://api.day.app/"
 			}
-			bark.RegisterServer()
+			configuration.Barks[i].RegisterServer()
 			senderCount++
 		}
 	}
 	if len(configuration.WXWorkApps) > 0 {
-		for _, app := range configuration.WXWorkApps {
-			if app.CorpId == "" || app.AppSecret == "" || app.AgentID == "" {
+		for i := 0; i < len(configuration.WXWorkApps); i++ {
+			if configuration.WXWorkApps[i].CorpId == "" || configuration.WXWorkApps[i].AppSecret == "" || configuration.WXWorkApps[i].AgentID == "" {
 				continue
 			}
-			if app.ToUser == "" {
-				app.ToUser = "@all"
+			if configuration.WXWorkApps[i].ToUser == "" {
+				configuration.WXWorkApps[i].ToUser = "@all"
 			}
-			app.RegisterServer()
+			configuration.WXWorkApps[i].RegisterServer()
 			senderCount++
 		}
 	}

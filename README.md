@@ -47,11 +47,11 @@ contact_bilibili: true
 ```yaml
 Bark:
   - url: "https://api.day.app/"
-    secrets: "asdffghjklQWERTYUIIOPz"
+    device_key: "asdffghjklQWERTYUIIOPz"
   - url: "https://api.day.app/"
-    secrets: "ABcDeFg1hIjkLmNOPQrstu"
+    device_key: "ABcDeFg1hIjkLmNOPQrstu"
   - url: "https://api.day.app/"
-    secrets: "xCVBNMASDFGHJKLERTYUIO"
+    device_key: "xCVBNMASDFGHJKLERTYUIO"
 ```
 
 ### 需要企业微信应用消息的

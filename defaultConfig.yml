@@ -6,9 +6,9 @@ debug: false
 Bark:
 #    需要多个服务器可多复制几遍
 #  - url: 推送服务器地址，默认"https://api.day.app/"
-#    secrets: 你的推送密钥，格式为 "ABcDeFg1hIjkLmNOPQrstu"
+#    device_key: 你的推送密钥，格式为 "ABcDeFg1hIjkLmNOPQrstu"
   - url: "https://api.day.app/"
-    secrets: ""
+    device_key: ""
 
 WXWorkApp:
 #  - corpId: "ww123456789a01b2c3"
