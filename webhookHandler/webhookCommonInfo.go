@@ -12,6 +12,7 @@ import (
 
 type Cache struct {
 	sync.Map
+	ticker *time.Ticker
 }
 
 const expireTime = int64(time.Hour) * 24
@@ -36,8 +37,8 @@ func (c *Cache) CleanUp() {
 // autoCleanup 定时清理过期缓存
 // autoCleanup 内维持了一个*time.Ticker，每隔expireTime时间清理一次过期缓存
 func (c *Cache) autoCleanup() {
-	ticker := time.NewTicker(time.Duration(expireTime))
-	for range ticker.C {
+	c.ticker = time.NewTicker(time.Duration(expireTime))
+	for range c.ticker.C {
 		c.CleanUp()
 	}
 }
@@ -78,7 +79,7 @@ func formatStorageSpace(bytes int64) string {
 }
 
 // secondsToString 将用秒表示的时间转换为字符串（?天）(?时)(?分)(?秒)(剩余小数)
-// 例如 1.234567 => "1秒234"
+// 例如 83.4567 => "1分23秒456"
 func secondsToString(seconds float64) string {
 	var timeBuilder strings.Builder
 	s := int(seconds)

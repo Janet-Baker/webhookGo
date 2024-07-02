@@ -3,9 +3,7 @@ package webhookHandler
 import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"github.com/valyala/fastjson"
 	"net/http"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -13,267 +11,187 @@ import (
 	"webhookGo/messageSender"
 )
 
-// BlrecTaskRunner 根据响应体内容，执行任务
-func blrecTaskRunner(path string, content []byte) {
-	log.Trace(string(content))
-	var p fastjson.Parser
-	getter, errOfJsonParser := p.ParseBytes(content)
-	if errOfJsonParser != nil {
-		return
-	}
-	webhookId := string(getter.GetStringBytes("id"))
-	if len(webhookId) < 36 {
-		log.Warnln("blrec webhook 请求的 id 读取失败", webhookId)
-		return
-	}
-	log.Debug(webhookId, "收到 blrec webhook 请求")
+type BlrecMessageStruct struct {
+	Id   string `json:"id" binding:"required"`
+	Date string `json:"date" binding:"required"`
+	Type string `json:"type" binding:"required"`
+	Data struct {
+		UserInfo struct {
+			Name   string `json:"name"`
+			Gender string `json:"gender"`
+			Face   string `json:"face"`
+			Uid    int64  `json:"uid"`
+			Level  int    `json:"level"`
+			Sign   string `json:"sign"`
+		} `json:"user_info,omitempty"` // "LiveBeganEvent", "LiveEndedEvent"
+		RoomInfo struct {
+			Uid            int64  `json:"uid"`
+			RoomId         int64  `json:"room_id"`
+			ShortRoomId    int    `json:"short_room_id"`
+			AreaId         int    `json:"area_id"`
+			AreaName       string `json:"area_name"`
+			ParentAreaId   int    `json:"parent_area_id"`
+			ParentAreaName string `json:"parent_area_name"`
+			LiveStatus     int    `json:"live_status"`
+			LiveStartTime  int64  `json:"live_start_time"`
+			Online         int    `json:"online"`
+			Title          string `json:"title"`
+			Cover          string `json:"cover"`
+			Tags           string `json:"tags"`
+			Description    string `json:"description"`
+			// 下播时更新
+			isLocked bool
+			lockTill int64
+		} `json:"room_info,omitempty"` // "LiveBeganEvent", "LiveEndedEvent", "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent"
+		RoomId    int64    `json:"room_id,omitempty"`   // "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "PostprocessingCompletedEvent"
+		Path      string   `json:"path,omitempty"`      // "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "SpaceNoEnoughEvent"
+		Files     []string `json:"files,omitempty"`     // "PostprocessingCompletedEvent"
+		Threshold int64    `json:"threshold,omitempty"` // "SpaceNoEnoughEvent"
+		Usage     struct {
+			Total int64 `json:"total"`
+			Used  int64 `json:"used"`
+			Free  int64 `json:"free"`
+		} `json:"usage,omitempty"` // "SpaceNoEnoughEvent"
+		Name   string `json:"name,omitempty"`   // "Error"
+		Detail string `json:"detail,omitempty"` // "Error"
+	} `json:"data"`
+}
 
-	// 判断是否是重复的webhook请求
-	if registerId(webhookId) {
-		return
-	}
-
-	// 判断事件类型
-	hookType := string(getter.GetStringBytes("type"))
-	eventSettings := blrecSettings[path][hookType]
-	switch hookType {
-	// LiveBeganEvent 主播开播
-	case "LiveBeganEvent":
-		if eventSettings.Care {
-			// 构造日志
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 主播开播：")
-			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			log.Info(logBuilder.String())
-		}
-		if eventSettings.Notify {
-			// 构造消息
-			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			msgTitleBuilder.WriteString(" 开播了")
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("- 主播：[")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			msgContentBuilder.WriteString("](https://live.bilibili.com/")
-			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
-			msgContentBuilder.WriteString(")\n- 标题：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "title"))
-			msgContentBuilder.WriteString("\n- 分区：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "parent_area_name"))
-			msgContentBuilder.WriteString(" - ")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "area_name"))
-			msgContentBuilder.WriteString("\n- 开播时间：")
-			msgContentBuilder.WriteString(time.Unix(getter.GetInt64("data", "room_info", "live_start_time"), 0).Local().Format("2006-01-02 15:04:05"))
-
-			var msg = messageSender.GeneralPushMessage{
-				Title:   msgTitleBuilder.String(),
-				Content: msgContentBuilder.String(),
-				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
-	// LiveEndedEvent 主播下播
+func (message *BlrecMessageStruct) GetTitle() string {
+	var sb strings.Builder
+	switch message.Type {
 	case "LiveEndedEvent":
-		if eventSettings.Care {
-			// 构造日志
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 主播下播：")
-			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			log.Info(logBuilder.String())
+		sb.WriteString(message.Data.UserInfo.Name)
+		if message.Data.RoomInfo.isLocked {
+			sb.WriteString(" 喜提直播间封禁")
+		} else {
+			sb.WriteString(" 直播结束")
 		}
-		if eventSettings.Notify {
-			// 构造消息
-			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			isRoomLocked, lockTill := bilibiliInfo.IsRoomLocked(getter.GetInt64("data", "room_info", "room_id"))
-			if isRoomLocked {
-				msgTitleBuilder.WriteString(" 直播间被封禁")
-			} else {
-				msgTitleBuilder.WriteString(" 下播了")
-			}
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("- 主播：[")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			msgContentBuilder.WriteString("](https://live.bilibili.com/")
-			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
-			msgContentBuilder.WriteString(")\n- 标题：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "title"))
-			msgContentBuilder.WriteString("\n- 分区：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "parent_area_name"))
-			msgContentBuilder.WriteString(" - ")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "area_name"))
-			if isRoomLocked {
-				msgContentBuilder.WriteString("\n- 封禁到：")
-				msgContentBuilder.WriteString(time.Unix(lockTill, 0).Local().Format("2006-01-02 15:04:05"))
-			}
-
-			var msg = messageSender.GeneralPushMessage{
-				Title:   msgTitleBuilder.String(),
-				Content: msgContentBuilder.String(),
-				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
-	// RoomChangeEvent 直播间信息改变
-	// RecordingStartedEvent 录制开始
-	// RecordingFinishedEvent 录制结束
-	// RecordingCancelledEvent 录制取消
-	case "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent":
-		if eventSettings.Care {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec ")
-			logBuilder.WriteString(blrecEventNameMap[hookType])
-			logBuilder.WriteString("：")
-			logBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			logBuilder.WriteString(time.Unix(getter.GetInt64("data", "room_info", "room_id"), 0).Local().Format("2006-01-02 15:04:05"))
-			log.Info(logBuilder.String())
-		}
-		if eventSettings.Notify {
-			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			msgTitleBuilder.WriteString(blrecEventNameMap[hookType])
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("- 主播：[")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "user_info", "name"))
-			msgContentBuilder.WriteString("](https://live.bilibili.com/")
-			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "room_info", "room_id"), 10))
-			msgContentBuilder.WriteString(")\n- 标题：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "title"))
-			msgContentBuilder.WriteString("\n- 分区：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "parent_area_name"))
-			msgContentBuilder.WriteString(" - ")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "room_info", "area_name"))
-
-			var msg = messageSender.GeneralPushMessage{
-				Title:   msgTitleBuilder.String(),
-				Content: msgContentBuilder.String(),
-				IconURL: string(getter.GetStringBytes("data", "user_info", "face")),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
-	// VideoFileCreatedEvent 视频文件创建
-	// VideoFileCompletedEvent 视频文件完成
-	// DanmakuFileCreatedEvent 弹幕文件创建
-	// DanmakuFileCompletedEvent 弹幕文件完成
-	// RawDanmakuFileCreatedEvent 原始弹幕文件创建
-	// RawDanmakuFileCompletedEvent 原始弹幕文件完成
-	// VideoPostprocessingCompletedEvent 视频后处理完成
-	case "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "VideoPostprocessingCompletedEvent":
-		if eventSettings.Care {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec ")
-			logBuilder.WriteString(blrecEventNameMap[hookType])
-			logBuilder.WriteString("：")
-			logBuilder.Write(getter.GetStringBytes("data", "path"))
-			log.Info(logBuilder.String())
-		}
-		if eventSettings.Notify {
-			var msgTitleBuilder strings.Builder
-			msgTitleBuilder.WriteString(blrecEventNameMap[hookType])
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("- 文件路径：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "path"))
-			msgContentBuilder.WriteString("\n- 文件大小：")
-			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "size"), 10))
-			msgContentBuilder.WriteString(" 字节\n- 文件时长：")
-			msgContentBuilder.WriteString(strconv.FormatUint(getter.GetUint64("data", "duration"), 10))
-			msgContentBuilder.WriteString(" 秒")
-
-			var msg = messageSender.GeneralPushMessage{
-				Title:   msgTitleBuilder.String(),
-				Content: msgContentBuilder.String(),
-				IconURL: bilibiliInfo.GetAvatarByRoomID(getter.GetInt64("data", "room_id")),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
-	// SpaceNoEnoughEvent 硬盘空间不足
 	case "SpaceNoEnoughEvent":
-		if eventSettings.Care {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 硬盘空间不足：文件路径：")
-			logBuilder.Write(getter.GetStringBytes("data", "path"))
-			logBuilder.WriteString("；可用空间：")
-			logBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
-			log.Warn(logBuilder.String())
-		}
-		if eventSettings.Notify {
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("- 文件路径：")
-			msgContentBuilder.Write(getter.GetStringBytes("data", "path"))
-			msgContentBuilder.WriteString("\n- 磁盘总空间：")
-			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "total")))
-			msgContentBuilder.WriteString("\n- 已用空间：")
-			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "used")))
-			msgContentBuilder.WriteString("\n- 设定临界空间：")
-			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "threshold")))
-			msgContentBuilder.WriteString("\n- 可用空间：")
-			msgContentBuilder.WriteString(formatStorageSpace(getter.GetInt64("data", "usage", "free")))
-
-			var msg = messageSender.GeneralPushMessage{
-				Title:   "blrec 硬盘空间不足",
-				Content: msgContentBuilder.String(),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
-	// Error 程序出现异常
+		return "blrec 硬盘空间不足"
 	case "Error":
-		if eventSettings.Care {
-			var logBuilder strings.Builder
-			logBuilder.WriteString("blrec 程序出现异常：")
-			logBuilder.Write(getter.GetStringBytes("data"))
-			log.Warn(logBuilder.String())
-		}
-		if eventSettings.Notify {
-			var msgContentBuilder strings.Builder
-			msgContentBuilder.WriteString("```json\n")
-			msgContentBuilder.Write(getter.GetStringBytes("data"))
-			msgContentBuilder.WriteString("\n```")
-			var msg = messageSender.GeneralPushMessage{
-				Title:   "blrec 程序出现异常",
-				Content: msgContentBuilder.String(),
-			}
-			msg.SendToAllTargets()
-		}
-		break
-
+		return "blrec 出现异常 " + message.Data.Name
 	default:
-		var logBuilder strings.Builder
-		logBuilder.WriteString(webhookId)
-		logBuilder.WriteString(" 未知的 blrec webhook 请求类型：")
-		logBuilder.WriteString(hookType)
-		log.Warn(logBuilder.String(), content)
+		sb.WriteString(message.Data.UserInfo.Name)
+		sb.WriteString(" ")
+		sb.WriteString(blrecEventNameMap[message.Type])
 	}
-	if eventSettings.HaveCommand {
-		log.Info("执行命令：", eventSettings.ExecCommand)
-		cmd := exec.Command(eventSettings.ExecCommand)
-		err := cmd.Run()
-		if err != nil {
-			log.Error("执行命令失败：", err.Error())
+	return sb.String()
+}
+
+func (message *BlrecMessageStruct) GetContent() string {
+	if message.Type == "Error" {
+		return message.Data.Detail
+	}
+	var sb strings.Builder
+	switch message.Type {
+	case "SpaceNoEnoughEvent":
+		sb.WriteString("剩余空间：")
+		sb.WriteString(formatStorageSpace(message.Data.Usage.Free))
+		sb.WriteString("，阈值：")
+		sb.WriteString(formatStorageSpace(message.Data.Threshold))
+		return sb.String()
+	case "LiveBeganEvent", "LiveEndedEvent", "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent":
+		sb.WriteString("- 主播：[")
+		sb.WriteString(message.Data.UserInfo.Name)
+		sb.WriteString("](https://live.bilibili.com/")
+		sb.WriteString(strconv.FormatInt(message.Data.RoomInfo.RoomId, 10))
+		sb.WriteString(")\n- 标题：")
+		sb.WriteString(message.Data.RoomInfo.Title)
+		sb.WriteString("\n- 分区：")
+		sb.WriteString(message.Data.RoomInfo.ParentAreaName)
+		sb.WriteString(" - ")
+		sb.WriteString(message.Data.RoomInfo.AreaName)
+		switch message.Type {
+		case "LiveBeganEvent":
+			sb.WriteString("\n- 开播时间：")
+			sb.WriteString(time.Unix(message.Data.RoomInfo.LiveStartTime, 0).Format("2006-01-02 15:04:05"))
+		case "LiveEndedEvent":
+			if message.Data.RoomInfo.isLocked {
+				sb.WriteString("\n- 封禁到：")
+				sb.WriteString(time.Unix(message.Data.RoomInfo.lockTill, 0).Format("2006-01-02 15:04:05"))
+			}
+		}
+	case "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "PostprocessingCompletedEvent":
+		sb.WriteString("- 主播：[")
+		sb.WriteString(message.Data.UserInfo.Name)
+		sb.WriteString("](https://live.bilibili.com/")
+		sb.WriteString(strconv.FormatInt(message.Data.RoomInfo.RoomId, 10))
+		sb.WriteString(")\n")
+		sb.WriteString("- 时间：")
+		sb.WriteString(message.Date)
+		sb.WriteString("\n- 文件：\n")
+		if message.Type == "PostprocessingCompletedEvent" {
+			for i := 0; i < len(message.Data.Files); i++ {
+				sb.WriteString(message.Data.Files[i])
+				sb.WriteString("\n")
+			}
+		} else {
+			sb.WriteString(message.Data.Path)
 		}
 	}
+	return sb.String()
+}
+
+func (message *BlrecMessageStruct) GetIconURL() string {
+	return message.Data.UserInfo.Face
+}
+
+func (message *BlrecMessageStruct) SendToAllTargets() {
+	var msg = messageSender.GeneralPushMessage{
+		Title:   message.GetTitle(),
+		Content: message.GetContent(),
+		IconURL: message.GetIconURL(),
+	}
+	go msg.SendToAllTargets()
 }
 
 // BlrecWebhookHandler 处理 blrec 的 webhook 请求
 func BlrecWebhookHandler(c *gin.Context) {
 	// 读取请求内容
-	content, err := c.GetRawData()
+	var message BlrecMessageStruct
+	err := c.BindJSON(&message)
 	if err != nil {
 		log.Error("读取 blrec webhook 请求失败：", err.Error())
+		log.Trace(c.GetRawData())
 		c.Status(http.StatusBadRequest)
 		return
 	}
 	c.Status(http.StatusOK)
-	go blrecTaskRunner(c.FullPath(), content)
+	if registerId(message.Id) {
+		return
+	}
+	if _, ok := blrecEventNameMap[message.Type]; !ok {
+		b, e := c.GetRawData()
+		s := string(b)
+		if len(s) > 128 {
+			s = s[:128]
+		}
+		log.Warn("未知事件类型：", message.Type, '\n', s, e)
+		return
+	}
+	var eventSettings Event = blrecSettings[c.FullPath()][message.Type]
+	if eventSettings.Care {
+		log.Info("blrec" + blrecEventNameMap[message.Type])
+	}
+	if eventSettings.Notify {
+		switch message.Type {
+		case "LiveEndedEvent":
+			message.Data.RoomInfo.isLocked, message.Data.RoomInfo.lockTill = bilibiliInfo.IsRoomLocked(message.Data.RoomInfo.RoomId)
+		case "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "PostprocessingCompletedEvent":
+			message.Data.RoomInfo.RoomId = message.Data.RoomId
+			fallthrough
+		case "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent":
+			// get icon
+			message.Data.UserInfo.Face, _ = bilibiliInfo.GetAvatarByRoomID(message.Data.RoomInfo.RoomId)
+			message.Data.UserInfo.Name, _ = bilibiliInfo.GetUsernameByRoomId(message.Data.RoomInfo.RoomId)
+		}
+
+		message.SendToAllTargets()
+	}
+	if eventSettings.HaveCommand {
+		go execCommand(eventSettings.ExecCommand)
+	}
 }
 
 var blrecSettings = make(map[string]map[string]Event)
@@ -290,7 +208,9 @@ var blrecEventNameMap = map[string]string{
 	"DanmakuFileCompletedEvent":         "弹幕文件完成",
 	"RawDanmakuFileCreatedEvent":        "原始弹幕文件创建",
 	"RawDanmakuFileCompletedEvent":      "原始弹幕文件完成",
+	"CoverImageDownloadedEvent":         "封面图片下载完成",
 	"VideoPostprocessingCompletedEvent": "视频后处理完成",
+	"PostprocessingCompletedEvent":      "后处理完成",
 	"SpaceNoEnoughEvent":                "硬盘空间不足",
 	"Error":                             "程序出现异常",
 }
