@@ -1,11 +1,29 @@
 package messageSender
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
 )
+
+type barkMessageStruct struct {
+	DeviceKey string `json:"device_key"`
+	Title     string `json:"title,omitempty"`     // 推送标题
+	Body      string `json:"body"`                // 推送内容
+	Icon      string `json:"icon,omitempty"`      // 自定义推送图标
+	Category  string `json:"category,omitempty"`  // 消息分类(?)
+	Group     string `json:"group,omitempty"`     // 推送消息分组
+	Sound     string `json:"sound,omitempty"`     // 推送铃声
+	Badge     int    `json:"badge,omitempty"`     // 设置角标
+	Url       string `json:"url,omitempty"`       // 点击通知跳转至URL
+	IsArchive int    `json:"isArchive,omitempty"` // 为1时自动保存通知消息
+	Copy      string `json:"copy,omitempty"`      // 长按通知可选择复制指定内容
+	AutoCopy  int    `json:"autoCopy,omitempty"`  // 为1时自动复制copy内容
+}
 
 // BarkServer Bark消息推送(iOS)
 type BarkServer struct {
@@ -18,20 +36,45 @@ func (barkServer *BarkServer) RegisterServer() {
 }
 
 func (barkServer *BarkServer) SendMessage(message Message) {
+	_ = barkServer.sendMessage(message)
+}
+
+func (barkServer *BarkServer) sendMessage(message Message) error {
 	if message == nil {
-		return
+		return errors.New("发送Bark消息失败：消息为空")
 	}
 	if barkServer.BarkSecrets == "" {
-		return
+		return errors.New("无效的Bark密钥")
 	}
-	sendUrl := barkServer.ServerUrl + barkServer.BarkSecrets + "/" + url.QueryEscape(message.GetTitle()) + "/" + url.QueryEscape(message.GetContent())
-	if message.GetIconURL() != "" {
-		sendUrl = sendUrl + "?icon=" + url.QueryEscape(message.GetIconURL())
+
+	// Get a buffer from the pool
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()               // Reset the buffer for reuse
+	defer bufferPool.Put(buf) // Return the buffer to the pool
+
+	var messageStruct = barkMessageStruct{
+		DeviceKey: barkServer.BarkSecrets,
+		Title:     message.GetTitle(),
+		Body:      message.GetContent(),
+		Icon:      message.GetIconURL(),
 	}
-	resp, err := http.Get(sendUrl)
+	// Marshal the message into the buffer
+	if err := json.NewEncoder(buf).Encode(messageStruct); err != nil {
+		log.Error("Encoding message failed", err)
+		return err
+	}
+
+	//sendUrl := barkServer.ServerUrl + "/push"
+	sendUrl, err := url.JoinPath(barkServer.ServerUrl, "/push")
+	if err != nil {
+		log.Error("发送Bark消息失败：构造目标链接时出错：", err)
+		return err
+	}
+
+	resp, err := http.Post(sendUrl, "application/json", buf)
 	if err != nil {
 		log.Error("发送Bark消息失败：", err)
-		return
+		return err
 	}
 	defer func(Body io.ReadCloser) {
 		errCloser := Body.Close()
@@ -44,5 +87,5 @@ func (barkServer *BarkServer) SendMessage(message Message) {
 	} else {
 		log.Debug("发送Bark消息成功")
 	}
-	return
+	return nil
 }
