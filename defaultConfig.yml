@@ -442,3 +442,8 @@ Receivers:
         notify: false
         have_command: false
         exec_command: ""
+      EndBroadcastingReminder:
+        care: true
+        notify: false
+        have_command: false
+        exec_command: ""
