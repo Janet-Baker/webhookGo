@@ -2,7 +2,6 @@ package messageSender
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -12,17 +11,17 @@ import (
 
 type barkMessageStruct struct {
 	DeviceKey string `json:"device_key"`
-	Title     string `json:"title,omitempty"`     // 推送标题
-	Body      string `json:"body"`                // 推送内容
-	Icon      string `json:"icon,omitempty"`      // 自定义推送图标
-	Category  string `json:"category,omitempty"`  // 消息分类(?)
-	Group     string `json:"group,omitempty"`     // 推送消息分组
-	Sound     string `json:"sound,omitempty"`     // 推送铃声
-	Badge     int    `json:"badge,omitempty"`     // 设置角标
-	Url       string `json:"url,omitempty"`       // 点击通知跳转至URL
-	IsArchive int    `json:"isArchive,omitempty"` // 为1时自动保存通知消息
-	Copy      string `json:"copy,omitempty"`      // 长按通知可选择复制指定内容
-	AutoCopy  int    `json:"autoCopy,omitempty"`  // 为1时自动复制copy内容
+	Title     string `json:"title,omitempty"` // 推送标题
+	Body      string `json:"body"`            // 推送内容
+	Icon      string `json:"icon,omitempty"`  // 自定义推送图标
+	//Category  string `json:"category,omitempty"`  // 消息分类(?)
+	//Group     string `json:"group,omitempty"`     // 推送消息分组
+	//Sound     string `json:"sound,omitempty"`     // 推送铃声
+	//Badge     int    `json:"badge,omitempty"`     // 设置角标
+	//Url       string `json:"url,omitempty"`       // 点击通知跳转至URL
+	//IsArchive int    `json:"isArchive,omitempty"` // 为1时自动保存通知消息
+	//Copy      string `json:"copy,omitempty"`      // 长按通知可选择复制指定内容
+	//AutoCopy  int    `json:"autoCopy,omitempty"`  // 为1时自动复制copy内容
 }
 
 // BarkServer Bark消息推送(iOS)
@@ -59,7 +58,7 @@ func (barkServer *BarkServer) sendMessage(message Message) error {
 		Icon:      message.GetIconURL(),
 	}
 	// Marshal the message into the buffer
-	if err := json.NewEncoder(buf).Encode(messageStruct); err != nil {
+	if err := encodeJson(messageStruct, buf); err != nil {
 		log.Error("Encoding message failed", err)
 		return err
 	}

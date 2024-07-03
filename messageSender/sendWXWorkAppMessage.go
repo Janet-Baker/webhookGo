@@ -2,7 +2,6 @@ package messageSender
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/valyala/fastjson"
@@ -132,7 +131,7 @@ func (app *WXWorkAppTarget) SendMessage(message Message) {
 		DuplicateCheckInterval: 3600,
 	}
 	// Marshal the message into the buffer
-	if err := json.NewEncoder(buf).Encode(messageStruct); err != nil {
+	if err := encodeJson(messageStruct, buf); err != nil {
 		log.Error("Encoding message failed", err)
 		return
 	}
