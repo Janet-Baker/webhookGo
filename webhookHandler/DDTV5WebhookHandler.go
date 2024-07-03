@@ -95,6 +95,8 @@ const (
 	HlsTaskStart = 40108
 	// FlvTaskStart FLV任务成功开始
 	FlvTaskStart = 40109
+	// EndBroadcastingReminder 下播提醒
+	EndBroadcastingReminder = 40110
 )
 
 var ddtv5Settings = make(map[string]map[int]Event)
@@ -138,6 +140,7 @@ var ddtv5IdEventTitleMap = map[int]string{
 	Reconnect:                           "Reconnect",
 	HlsTaskStart:                        "HlsTaskStart",
 	FlvTaskStart:                        "FlvTaskStart",
+	EndBroadcastingReminder:             "EndBroadcastingReminder",
 }
 var ddtv5IdEventNameMap = map[int]string{
 	ReadingConfigurationFile:            "读取配置文件",
@@ -179,6 +182,7 @@ var ddtv5IdEventNameMap = map[int]string{
 	Reconnect:                           "录制触发重新连接",
 	HlsTaskStart:                        "HLS任务成功开始",
 	FlvTaskStart:                        "FLV任务成功开始",
+	EndBroadcastingReminder:             "下播提醒",
 }
 
 // TimeStopwatch
@@ -336,7 +340,7 @@ func (message *DDTV5MessageStruct) GetTitle() string {
 	}
 	if message.Code > 40000 {
 		name := message.Data.Name
-		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
+		if message.Code == RecordingEnd || message.Code == StopLiveEvent || message.Code == EndBroadcastingReminder {
 			if message.Data.IsLocked.Value {
 				return name + "喜提直播间封禁"
 			}
@@ -374,7 +378,8 @@ func (message *DDTV5MessageStruct) GetContent() string {
 			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.UID)
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
-		if message.Code == StartLiveEvent {
+		switch message.Code {
+		case StartLiveEvent:
 			if message.Data.LiveStatus.Value == 1 {
 				msgContentBuilder.WriteString("\n- 开播时间：")
 				msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
@@ -385,8 +390,7 @@ func (message *DDTV5MessageStruct) GetContent() string {
 					msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
 				}
 			}
-		}
-		if message.Code == RecordingEnd || message.Code == StopLiveEvent {
+		case RecordingEnd, StopLiveEvent, EndBroadcastingReminder:
 			if message.Data.IsLocked.Value {
 				msgContentBuilder.WriteString("\n- 直播间封禁至：")
 				msgContentBuilder.WriteString(message.Data.LockTill.Value)
