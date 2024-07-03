@@ -113,24 +113,19 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 			defer app.token.Unlock()
 			// 再次判断过期时间，防止被其他线程更新过了
 			if time.Now().Unix() > app.token.tokenExpireAt.Load() {
-				err := updateAccessToken(app)
-				if err != nil {
+				if err := updateAccessToken(app); err != nil {
 					return
 				}
 			}
 		}()
 	}
+
+	// Get a buffer from the pool
+	buf := bufferPool.Get().(*bytes.Buffer)
+	buf.Reset()               // Reset the buffer for reuse
+	defer bufferPool.Put(buf) // Return the buffer to the pool
+
 	// 制作要发送的 Markdown 消息
-	//var bodyBuffer bytes.Buffer
-	//bodyBuffer.WriteString(`{"touser":"`)
-	//bodyBuffer.WriteString(app.ToUser)
-	//bodyBuffer.WriteString(`","msgtype":"markdown","agentid":"`)
-	//bodyBuffer.WriteString(app.AgentID)
-	//bodyBuffer.WriteString(`","markdown":{"content":"# `)
-	//bodyBuffer.WriteString(message.GetTitle())
-	//bodyBuffer.WriteString("\n")
-	//bodyBuffer.WriteString(message.GetContent())
-	//bodyBuffer.WriteString(`"},"enable_duplicate_check":1,"duplicate_check_interval":3600}`)
 	var messageStruct = WXWorkAppMessageStruct{
 		Touser:                 app.ToUser,
 		Msgtype:                "markdown",
@@ -139,17 +134,18 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 		EnableDuplicateCheck:   1,
 		DuplicateCheckInterval: 3600,
 	}
-	bodyBuffer, err := json.Marshal(messageStruct)
-	if err != nil {
-		log.Error("发送企业微信应用消息 消息体编码失败", err)
+	// Marshal the message into the buffer
+	if err := json.NewEncoder(buf).Encode(messageStruct); err != nil {
+		log.Error("Encoding message failed", err)
 		return
 	}
+
 	// target: 发送目标，企业微信API https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=
 	targetUrl := "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + app.token.accessToken
 
 	// 发送请求
 	log.Trace("发送企业微信应用消息 请求地址", targetUrl)
-	resp, err := http.Post(targetUrl, "application/json", bytes.NewBuffer(bodyBuffer))
+	resp, err := http.Post(targetUrl, "application/json", buf)
 	if err != nil {
 		log.Error("发送企业微信应用消息 请求失败", err.Error())
 		return

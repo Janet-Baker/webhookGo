@@ -1,7 +1,9 @@
 package messageSender
 
 import (
+	"bytes"
 	log "github.com/sirupsen/logrus"
+	"sync"
 )
 
 type Message interface {
@@ -59,4 +61,13 @@ func GetAllServers() []MessageServer {
 
 func RegisterMessageServer(server MessageServer) {
 	servers = append(servers, server)
+}
+
+// Define a global variable for the pool
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		b := new(bytes.Buffer)
+		b.Grow(1024)
+		return b
+	},
 }
