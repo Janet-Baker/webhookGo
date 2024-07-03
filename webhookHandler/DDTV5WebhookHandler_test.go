@@ -27,9 +27,6 @@ func TestUnmarshalObject(t *testing.T) {
 		"short_id": {
 			"Value": 0
 		},
-		"area_name": {
-			"Value": "单机联机"
-		},
 		"area_v2_name": {
 			"Value": "其他单机"
 		},
@@ -44,12 +41,6 @@ func TestUnmarshalObject(t *testing.T) {
 		},
 		"keyframe": {
 			"Value": "https://i0.hdslb.com/bfs/live-key-frame/keyframe06161937000004983935pf8onv.jpg"
-		},
-		"lock_till": {
-			"Value": "0000-00-00 00:00:00"
-		},
-		"is_locked": {
-			"Value": false
 		},
 		"CurrentMode": 0,
 		"DownInfo": {
@@ -88,7 +79,7 @@ func TestUnmarshalObject(t *testing.T) {
 				"TranscodingCount": 0,
 				"VideoFile": [],
 				"DanmuFile": [
-					"C:\\Users\\10632\\Documents\\GitHub\\DDTV\\Desktop\\bin\\Debug\\net8.0-windows7.0\\Rec\\4983935_小胖子等六名用户\\2024_06_26\\2024_06_26_21_28_22_100%鲜橙汁！_1.xml"
+					"C:\\Users\\1\\DDTV\\Desktop\\Rec\\4983935_小胖子等六名用户\\2024_06_26\\2024_06_26_21_28_22_100%鲜橙汁！_1.xml"
 				],
 				"SCFile": [],
 				"GiftFile": [],

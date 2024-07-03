@@ -1,8 +1,10 @@
 package webhookHandler
 
 import (
+	"bytes"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -116,6 +118,11 @@ func (message *BililiveRecorderMessageStruct) SendToAllTargets() {
 
 // BililiveRecorderWebhookHandler 处理 BililiveRecoder 的 webhook 请求
 func BililiveRecorderWebhookHandler(c *gin.Context) {
+	if log.IsLevelEnabled(log.DebugLevel) {
+		b, e := c.GetRawData()
+		log.Debug(string(b), e)
+		c.Request.Body = io.NopCloser(bytes.NewReader(b))
+	}
 	var message BililiveRecorderMessageStruct
 	// 读取请求内容
 	err := c.BindJSON(&message)

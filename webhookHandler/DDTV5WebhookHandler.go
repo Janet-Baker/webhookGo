@@ -1,8 +1,10 @@
 package webhookHandler
 
 import (
+	"bytes"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -425,6 +427,11 @@ func (message *DDTV5MessageStruct) SendToAllTargets() {
 }
 
 func DDTV5WebhookHandler(c *gin.Context) {
+	if log.IsLevelEnabled(log.DebugLevel) {
+		b, e := c.GetRawData()
+		log.Debug(string(b), e)
+		c.Request.Body = io.NopCloser(bytes.NewReader(b))
+	}
 	// 读取请求内容
 	var message DDTV5MessageStruct
 	err := c.BindJSON(&message)

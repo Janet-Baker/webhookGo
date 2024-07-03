@@ -15,6 +15,7 @@ func init() {
 		ForceColors:   true,
 		FullTimestamp: true,
 	})
+
 }
 
 var messageHandlers = map[string]func(*gin.Context){
@@ -35,8 +36,8 @@ func main() {
 	}
 
 	r.NoRoute(func(c *gin.Context) {
-		log.Warnln("Unknown access to", c.Request.Method, `"`+c.Request.URL.Path+`"`,
-			"\nfrom", c.RemoteIP(), "User-Agent:", c.GetHeader("User-Agent"))
+		log.Warn("Unknown access to", c.Request.Method, `"`+c.Request.URL.Path+`"`,
+			"\nfrom", c.RemoteIP(), "User-Agent:", c.GetHeader("User-Agent"), "Request Header:", c.Request.Header)
 		c.Status(403)
 	})
 
