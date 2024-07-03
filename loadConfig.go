@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"flag"
 	"github.com/gin-gonic/gin"
+	"github.com/orandin/lumberjackrus"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -58,6 +59,7 @@ func loadConfig() initStruct {
 	if configuration.Debug {
 		log.SetLevel(log.DebugLevel)
 		log.Warnf("已开启Debug模式.")
+		log.AddHook(NewRotateHook())
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -155,4 +157,68 @@ func writeDefaultConfig(secretFile string) {
 	} else {
 		log.Warn("写入默认配置文件成功，请修改配置文件后重启程序。")
 	}
+}
+
+func NewRotateHook() log.Hook {
+	hook, _ := lumberjackrus.NewHook(
+		&lumberjackrus.LogFile{
+			// 通用日志配置
+			Filename:   "output.log",
+			MaxSize:    100,
+			MaxBackups: 1,
+			MaxAge:     1,
+			Compress:   false,
+			LocalTime:  false,
+		},
+		log.DebugLevel,
+		&log.TextFormatter{
+			DisableColors: true,
+			ForceColors:   false,
+			FullTimestamp: true,
+		},
+		&lumberjackrus.LogFileOpts{
+			// 针对不同日志级别的配置
+			log.TraceLevel: &lumberjackrus.LogFile{
+				Filename:   "trace.log",
+				MaxSize:    100,
+				MaxBackups: 1,
+				MaxAge:     1,
+				Compress:   false,
+				LocalTime:  false,
+			},
+			log.DebugLevel: &lumberjackrus.LogFile{
+				Filename:   "debug.log",
+				MaxSize:    100,
+				MaxBackups: 1,
+				MaxAge:     2,
+				Compress:   false,
+				LocalTime:  false,
+			},
+			log.InfoLevel: &lumberjackrus.LogFile{
+				Filename:   "info.log",
+				MaxSize:    100,
+				MaxBackups: 1,
+				MaxAge:     3,
+				Compress:   false,
+				LocalTime:  false,
+			},
+			log.ErrorLevel: &lumberjackrus.LogFile{
+				Filename:   "error.log",
+				MaxSize:    10,
+				MaxBackups: 1,
+				MaxAge:     10,
+				Compress:   false,
+				LocalTime:  false,
+			},
+			log.FatalLevel: &lumberjackrus.LogFile{
+				Filename:   "fatal.log",
+				MaxSize:    10,
+				MaxBackups: 1,
+				MaxAge:     10,
+				Compress:   false,
+				LocalTime:  false,
+			},
+		},
+	)
+	return hook
 }
