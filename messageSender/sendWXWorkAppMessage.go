@@ -43,7 +43,9 @@ func updateAccessToken(app *WXWorkAppTarget) error {
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
 	url := "https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=" + app.CorpId + "&corpsecret=" + app.AppSecret
-	log.Trace("更新企业微信应用的access_token：请求地址：", url)
+	if log.IsLevelEnabled(log.TraceLevel) {
+		log.Trace("更新企业微信应用的access_token：请求地址：", url)
+	}
 	// 发送请求
 	resp, err := http.Get(url)
 	if err != nil {

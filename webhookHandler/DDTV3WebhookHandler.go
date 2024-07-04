@@ -15,7 +15,9 @@ import (
 
 // ddtv3TaskRunner 根据响应体内容，执行任务
 func ddtv3TaskRunner(path string, content []byte) {
-	log.Trace(string(content))
+	if log.IsLevelEnabled(log.TraceLevel) {
+		log.Trace(string(content))
+	}
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
 	if errOfJsonParser != nil {

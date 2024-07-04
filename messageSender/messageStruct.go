@@ -35,7 +35,7 @@ func (message *GeneralPushMessage) GetIconURL() string {
 
 func (message *GeneralPushMessage) SendToAllTargets() {
 	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Tracef("发送消息：%+v", *message)
+		log.Tracef("发送消息：%+v", message)
 	}
 
 	// 并发发送消息

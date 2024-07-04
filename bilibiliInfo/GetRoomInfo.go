@@ -79,7 +79,9 @@ func getAndUnmarshal(url string, v any) error {
 		log.Error("读取响应消息失败", err.Error())
 		return err
 	}
-	log.Trace("响应", content)
+	if log.IsLevelEnabled(log.TraceLevel) {
+		log.Trace("响应", string(content))
+	}
 
 	err = json.Unmarshal(content, v)
 	if err != nil {
