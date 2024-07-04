@@ -160,7 +160,6 @@ func BlrecWebhookHandler(c *gin.Context) {
 	err := c.BindJSON(&message)
 	if err != nil {
 		log.Error("读取 blrec webhook 请求失败：", err.Error())
-		log.Trace(c.GetRawData())
 		c.Status(http.StatusBadRequest)
 		return
 	}
