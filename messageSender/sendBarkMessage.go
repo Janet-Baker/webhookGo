@@ -26,23 +26,23 @@ type barkMessageStruct struct {
 
 // BarkServer Bark消息推送(iOS)
 type BarkServer struct {
-	ServerUrl   string `yaml:"url"`
-	BarkSecrets string `yaml:"secrets"`
+	ServerUrl string `yaml:"url"`
+	DeviceKey string `yaml:"device_key"`
 }
 
-func (barkServer *BarkServer) RegisterServer() {
+func (barkServer BarkServer) RegisterServer() {
 	RegisterMessageServer(barkServer)
 }
 
-func (barkServer *BarkServer) SendMessage(message Message) {
+func (barkServer BarkServer) SendMessage(message Message) {
 	_ = barkServer.sendMessage(message)
 }
 
-func (barkServer *BarkServer) sendMessage(message Message) error {
+func (barkServer BarkServer) sendMessage(message Message) error {
 	if message == nil {
 		return errors.New("发送Bark消息失败：消息为空")
 	}
-	if barkServer.BarkSecrets == "" {
+	if barkServer.DeviceKey == "" {
 		return errors.New("无效的Bark密钥")
 	}
 
@@ -52,7 +52,7 @@ func (barkServer *BarkServer) sendMessage(message Message) error {
 	defer bufferPool.Put(buf) // Return the buffer to the pool
 
 	var messageStruct = barkMessageStruct{
-		DeviceKey: barkServer.BarkSecrets,
+		DeviceKey: barkServer.DeviceKey,
 		Title:     message.GetTitle(),
 		Body:      message.GetContent(),
 		Icon:      message.GetIconURL(),

@@ -8,8 +8,8 @@ import (
 func TestSendBarkMessageWithEmptySecret(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	var barkServer BarkServer = BarkServer{
-		ServerUrl:   "https://api.day.app",
-		BarkSecrets: "", // 留空，用于测试密钥为空的情况
+		ServerUrl: "https://api.day.app",
+		DeviceKey: "", // 留空，用于测试密钥为空的情况
 	}
 	var message Message = &GeneralPushMessage{
 		Title:   "Test",
@@ -24,8 +24,8 @@ func TestSendBarkMessageWithEmptySecret(t *testing.T) {
 func TestSendBarkMessage(t *testing.T) {
 	logrus.SetLevel(logrus.TraceLevel)
 	var barkServer BarkServer = BarkServer{
-		ServerUrl:   "https://api.day.app",
-		BarkSecrets: "", // 需要填写有效的密钥
+		ServerUrl: "https://api.day.app",
+		DeviceKey: "", // 需要填写有效的密钥
 	}
 	var message Message = &GeneralPushMessage{
 		Title:   "Test",

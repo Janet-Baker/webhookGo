@@ -12,7 +12,10 @@ import (
 	"time"
 )
 
+type noCopy struct{}
+
 type wxWorkAppToken struct {
+	noCopy noCopy
 	sync.RWMutex
 	accessToken   string
 	tokenExpireAt atomic.Int64
@@ -33,12 +36,12 @@ type WXWorkAppTarget struct {
 	token     *wxWorkAppToken
 }
 
-func (app *WXWorkAppTarget) RegisterServer() {
+func (app WXWorkAppTarget) RegisterServer() {
 	app.token = new(wxWorkAppToken)
 	RegisterMessageServer(app)
 }
 
-func updateAccessToken(app *WXWorkAppTarget) error {
+func updateAccessToken(app WXWorkAppTarget) error {
 	// https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=ID&corpsecret=SECRET
 	log.Info("更新企业微信应用的access_token")
 	// 构造请求地址
@@ -97,7 +100,7 @@ type Markdown struct {
 	Content string `json:"content"`
 }
 
-func (app *WXWorkAppTarget) SendMessage(message Message) {
+func (app WXWorkAppTarget) SendMessage(message Message) {
 	if message == nil {
 		return
 	}

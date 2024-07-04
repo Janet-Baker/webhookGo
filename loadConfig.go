@@ -77,7 +77,7 @@ func loadConfig() initStruct {
 	var senderCount int
 	if len(configuration.Barks) > 0 {
 		for i := 0; i < len(configuration.Barks); i++ {
-			if configuration.Barks[i].BarkSecrets == "" {
+			if configuration.Barks[i].DeviceKey == "" {
 				continue
 			}
 			if configuration.Barks[i].ServerUrl == "" {
