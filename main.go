@@ -36,9 +36,9 @@ func main() {
 	}
 
 	r.NoRoute(func(c *gin.Context) {
-		log.Warn("Unknown access to", c.Request.Method, `"`+c.Request.URL.Path+`"`,
-			"\nfrom", c.RemoteIP(), "User-Agent:", c.GetHeader("User-Agent"), "Request Header:", c.Request.Header)
-		c.Status(403)
+		log.Warn("Unknown access to ", c.Request.Method, ` "`+c.Request.URL.Path+`" `,
+			"\nRequest Header:", c.Request.Header)
+		c.Status(200)
 	})
 
 	err := r.Run(config.listenAddress)
