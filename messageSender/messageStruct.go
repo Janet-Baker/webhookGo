@@ -64,8 +64,8 @@ func RegisterMessageServer(server MessageServer) {
 }
 
 // Define a global variable for the pool
-var bufferPool = sync.Pool{
-	New: func() interface{} {
+var bytesBufferPool = sync.Pool{
+	New: func() any {
 		b := new(bytes.Buffer)
 		b.Grow(1024)
 		return b

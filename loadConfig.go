@@ -107,6 +107,10 @@ func loadConfig() initStruct {
 				configuration.Receivers[i].Events[k] = event
 			}
 		}
+	} else if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debugf("推送目标%+v", messageSender.GetAllServers())
+	} else {
+		log.Infof("共有%d个推送目标", senderCount)
 	}
 
 	if configuration.ListenAddress == "" {

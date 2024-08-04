@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 type barkMessageStruct struct {
@@ -38,6 +39,13 @@ func (barkServer BarkServer) SendMessage(message Message) {
 	_ = barkServer.sendMessage(message)
 }
 
+var barkMessagePool = sync.Pool{
+	New: func() any {
+		b := new(barkMessageStruct)
+		return b
+	},
+}
+
 func (barkServer BarkServer) sendMessage(message Message) error {
 	if message == nil {
 		return errors.New("发送Bark消息失败：消息为空")
@@ -47,18 +55,24 @@ func (barkServer BarkServer) sendMessage(message Message) error {
 	}
 
 	// Get a buffer from the pool
-	buf := bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()               // Reset the buffer for reuse
-	defer bufferPool.Put(buf) // Return the buffer to the pool
+	buf := bytesBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()                    // Reset the buffer for reuse
+	defer bytesBufferPool.Put(buf) // Return the buffer to the pool
 
-	var messageStruct = barkMessageStruct{
-		DeviceKey: barkServer.DeviceKey,
-		Title:     message.GetTitle(),
-		Body:      message.GetContent(),
-		Icon:      message.GetIconURL(),
-	}
+	var barkMessage = barkMessagePool.Get().(*barkMessageStruct)
+	defer barkMessagePool.Put(barkMessage)
+	barkMessage.DeviceKey = barkServer.DeviceKey
+	barkMessage.Title = message.GetTitle()
+	barkMessage.Body = message.GetContent()
+	barkMessage.Icon = message.GetIconURL()
+	//var barkMessage = barkMessageStruct{
+	//	DeviceKey: barkServer.DeviceKey,
+	//	Title:     message.GetTitle(),
+	//	Body:      message.GetContent(),
+	//	Icon:      message.GetIconURL(),
+	//}
 	// Marshal the message into the buffer
-	if err := encodeJson(messageStruct, buf); err != nil {
+	if err := encodeJson(barkMessage, buf); err != nil {
 		log.Error("Encoding message failed", err)
 		return err
 	}
@@ -81,10 +95,12 @@ func (barkServer BarkServer) sendMessage(message Message) error {
 			log.Error("发送Bark消息：关闭消息发送响应失败：", errCloser.Error())
 		}
 	}(resp.Body)
-	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Tracef("发送Bark消息响应：%+v", resp)
-	} else {
-		log.Debug("发送Bark消息成功")
+	if log.IsLevelEnabled(log.DebugLevel) {
+		buf := bytesBufferPool.Get().(*bytes.Buffer)
+		buf.Reset()                    // Reset the buffer for reuse
+		defer bytesBufferPool.Put(buf) // Return the buffer to the pool
+		_, _ = buf.ReadFrom(resp.Body)
+		log.Debug("发送Bark消息响应：%+v", buf.String())
 	}
 	return nil
 }

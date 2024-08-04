@@ -100,6 +100,17 @@ type Markdown struct {
 	Content string `json:"content"`
 }
 
+var wxWorkMessagePool = sync.Pool{
+	New: func() any {
+		b := &WXWorkAppMessageStruct{
+			Msgtype:                "markdown",
+			EnableDuplicateCheck:   1,
+			DuplicateCheckInterval: 3600,
+		}
+		return b
+	},
+}
+
 func (app WXWorkAppTarget) SendMessage(message Message) {
 	if message == nil {
 		return
@@ -122,21 +133,26 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 	}
 
 	// Get a buffer from the pool
-	buf := bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()               // Reset the buffer for reuse
-	defer bufferPool.Put(buf) // Return the buffer to the pool
+	buf := bytesBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()                    // Reset the buffer for reuse
+	defer bytesBufferPool.Put(buf) // Return the buffer to the pool
 
 	// 制作要发送的 Markdown 消息
-	var messageStruct = WXWorkAppMessageStruct{
-		Touser:                 app.ToUser,
-		Msgtype:                "markdown",
-		Agentid:                app.AgentID,
-		Markdown:               Markdown{"# " + message.GetTitle() + "\n\n" + message.GetContent()},
-		EnableDuplicateCheck:   1,
-		DuplicateCheckInterval: 3600,
-	}
+	var wxWorkAppMessage = wxWorkMessagePool.Get().(*WXWorkAppMessageStruct)
+	defer wxWorkMessagePool.Put(wxWorkAppMessage)
+	wxWorkAppMessage.Touser = app.ToUser
+	wxWorkAppMessage.Agentid = app.AgentID
+	wxWorkAppMessage.Markdown = Markdown{"# " + message.GetTitle() + "\n\n" + message.GetContent()}
+	//var messageStruct = WXWorkAppMessageStruct{
+	//	Touser:                 app.ToUser,
+	//	Msgtype:                "markdown",
+	//	Agentid:                app.AgentID,
+	//	Markdown:               Markdown{"# " + message.GetTitle() + "\n\n" + message.GetContent()},
+	//	EnableDuplicateCheck:   1,
+	//	DuplicateCheckInterval: 3600,
+	//}
 	// Marshal the message into the buffer
-	if err := encodeJson(messageStruct, buf); err != nil {
+	if err := encodeJson(wxWorkAppMessage, buf); err != nil {
 		log.Error("Encoding message failed", err)
 		return
 	}
@@ -174,10 +190,8 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 		log.Error("发送企业微信应用消息 服务器返回错误", content)
 		return
 	}
-	if log.IsLevelEnabled(log.TraceLevel) {
-		log.Trace("发送企业微信应用消息成功 响应消息", content)
-	} else {
-		log.Debug("发送企业微信应用消息成功 消息id", getter.GetStringBytes("msgid"))
+	if log.IsLevelEnabled(log.DebugLevel) {
+		log.Debug("发送企业微信应用消息成功 响应消息", content)
 	}
 	return
 }
