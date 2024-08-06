@@ -32,6 +32,8 @@ func main() {
 		if function, ok := messageHandlers[receiver.Type]; ok {
 			log.Info(receiver.Type + "已启用，监听 http://" + config.listenAddress + receiver.Path)
 			r.POST(receiver.Path, function)
+		} else {
+			log.Warn("忽略未知的事件来源：" + receiver.Type)
 		}
 	}
 
