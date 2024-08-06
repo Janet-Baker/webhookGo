@@ -6,50 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 )
-
-type Cache struct {
-	sync.Map
-	ticker *time.Ticker
-}
-
-const expireTime = int64(time.Hour) * 24
-
-// NewAutoCleanupCache 创建一个Cache,自动清理过期缓存
-func NewAutoCleanupCache() *Cache {
-	var c = &Cache{}
-	go c.autoCleanup()
-	return c
-}
-
-// CleanUp 遍历缓存，删除过期的缓存
-func (c *Cache) CleanUp() {
-	c.Range(func(key, value interface{}) bool {
-		if time.Now().Unix()-value.(int64) > expireTime {
-			c.Delete(key.(string))
-		}
-		return true
-	})
-}
-
-// autoCleanup 定时清理过期缓存
-// autoCleanup 内维持了一个*time.Ticker，每隔expireTime时间清理一次过期缓存
-func (c *Cache) autoCleanup() {
-	c.ticker = time.NewTicker(time.Duration(expireTime))
-	for range c.ticker.C {
-		c.CleanUp()
-	}
-}
-
-var idCache = NewAutoCleanupCache()
-
-// registerId 注册一个ID，如果ID已经存在则返回true
-func registerId(id string) (alreadyExist bool) {
-	_, alreadyExist = idCache.LoadOrStore(id, time.Now().Unix())
-	return
-}
 
 // Event 每个事件的设置项
 type Event struct {
@@ -87,20 +44,22 @@ func secondsToString(seconds float64) string {
 	if s >= 86400 {
 		timeBuilder.WriteString(strconv.Itoa(s / 86400))
 		timeBuilder.WriteString("天")
-		s = s - (int(s/86400))*86400
+		s = s % 86400
 	}
 	if s >= 3600 {
 		timeBuilder.WriteString(strconv.Itoa(s / 3600))
 		timeBuilder.WriteString("时")
-		s = s - (int(s/3600))*3600
+		s = s % 3600
 	}
 	if s >= 60 {
 		timeBuilder.WriteString(strconv.Itoa(s / 60))
 		timeBuilder.WriteString("分")
-		s = s - (int(s/60))*60
+		s = s % 60
 	}
-	timeBuilder.WriteString(strconv.Itoa(s))
-	timeBuilder.WriteString("秒")
+	if s > 0 {
+		timeBuilder.WriteString(strconv.Itoa(s))
+		timeBuilder.WriteString("秒")
+	}
 
 	if ms > 1 {
 		timeBuilder.WriteString(strconv.Itoa(ms))
