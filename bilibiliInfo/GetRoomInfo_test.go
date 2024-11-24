@@ -1,6 +1,9 @@
 package bilibiliInfo
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestGetUidByRoomid(t *testing.T) {
 	ContactBilibili = true
@@ -54,4 +57,13 @@ func TestGetAreaName2(t *testing.T) {
 	if areaName == "未知" || areaName == "获取失败" {
 		t.Fail()
 	}
+}
+
+func Test_forceGetInfo(t *testing.T) {
+	infoGot, err := forceGetInfo(27209189)
+	if err != nil {
+		fmt.Println(err)
+		t.Fail()
+	}
+	fmt.Println(infoGot)
 }

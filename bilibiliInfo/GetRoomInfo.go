@@ -85,7 +85,7 @@ func getAndUnmarshal(url string, v any) error {
 
 	err = json.Unmarshal(content, v)
 	if err != nil {
-		log.Error("解析失败", err.Error())
+		log.Error("解析失败:", string(content), err.Error())
 		return err
 	}
 	return nil

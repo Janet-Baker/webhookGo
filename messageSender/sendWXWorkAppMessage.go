@@ -187,11 +187,11 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 	}
 	errcode := getter.GetInt("errcode")
 	if errcode != 0 {
-		log.Error("发送企业微信应用消息 服务器返回错误", content)
+		log.Error("发送企业微信应用消息 服务器返回错误", string(content))
 		return
 	}
 	if log.IsLevelEnabled(log.DebugLevel) {
-		log.Debug("发送企业微信应用消息成功 响应消息", content)
+		log.Debug("发送企业微信应用消息成功 响应消息", string(content))
 	}
 	return
 }
