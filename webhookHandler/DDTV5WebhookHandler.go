@@ -372,12 +372,12 @@ func (message *DDTV5MessageStruct) GetContent() string {
 		msgContentBuilder.WriteString(message.Data.Title.Value)
 		msgContentBuilder.WriteString("\n- 分区：")
 		if len(message.Data.AreaV2ParentName.Value) == 0 {
-			message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaV2ParentName(message.Data.UID)
+			message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaV2ParentName(message.Data.RoomId)
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2ParentName.Value)
 		msgContentBuilder.WriteString(" - ")
 		if len(message.Data.AreaV2Name.Value) == 0 {
-			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.UID)
+			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.RoomId)
 		}
 		msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
 		switch message.Code {
@@ -444,6 +444,10 @@ func DDTV5WebhookHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 	// DDTV5中，webhook请求是异步的，不再强烈要求立刻返回。
 	var eventSettings Event = ddtv5Settings[c.FullPath()][message.Code]
+	handleDDTV5Messages(eventSettings, message)
+}
+
+func handleDDTV5Messages(eventSettings Event, message DDTV5MessageStruct) {
 	if eventSettings.Care {
 		log.Info("DDTV5 ", message.Message)
 	}

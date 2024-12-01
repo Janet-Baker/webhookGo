@@ -290,9 +290,11 @@ func forceGetInfo(roomId int64) (GetInfo, error) {
 	}
 	//	https://api.live.bilibili.com/room/v1/Room/get_info
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/get_info?room_id=" + strconv.FormatInt(roomId, 10)
+	log.Trace("forceGetInfo: " + urlBuilder)
 	var getInfoResult GetInfo
 	err := getAndUnmarshal(urlBuilder, &getInfoResult)
 	if err != nil {
+		log.Error("反序列化房间信息失败：GetInfo: ", roomId)
 		return GetInfo{}, err
 	}
 	getInfoResult.lastUpdate = time.Now().Unix()
@@ -311,6 +313,7 @@ func forceRoomInit(roomId int64) (RoomInit, error) {
 	}
 	// 构造请求
 	urlBuilder := "https://api.live.bilibili.com/room/v1/Room/room_init?id=" + strconv.FormatInt(roomId, 10)
+	log.Trace("forceRoomInit: " + urlBuilder)
 	var roomInitResult RoomInit
 	err := getAndUnmarshal(urlBuilder, &roomInitResult)
 	if err != nil {
@@ -333,6 +336,7 @@ func forceMasterInfo(uid int64) (MasterInfo, error) {
 	}
 	// 构造请求
 	urlBuilder := "https://api.live.bilibili.com/live_user/v1/Master/info?uid=" + strconv.FormatInt(uid, 10)
+	log.Trace("forceMasterInfo: " + urlBuilder)
 	var masterInfoResult MasterInfo
 	err := getAndUnmarshal(urlBuilder, &masterInfoResult)
 	if err != nil {

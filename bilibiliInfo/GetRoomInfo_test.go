@@ -44,7 +44,7 @@ func TestGetAreaName1(t *testing.T) {
 	var roomid int64 = 4983935
 	areaName := GetAreaV2Name(roomid)
 	t.Log(areaName)
-	if areaName == "获取失败" {
+	if areaName != "未知" {
 		t.Fail()
 	}
 }
