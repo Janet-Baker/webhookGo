@@ -42,7 +42,7 @@ address: '127.0.0.1:14000'
 contact_bilibili: true
 ```
 
-### 需要Bark推送的
+### iOS用户，需要Bark推送的
 
 ```yaml
 Bark:
@@ -52,6 +52,13 @@ Bark:
     device_key: "ABcDeFg1hIjkLmNOPQrstu"
   - url: "https://api.day.app/"
     device_key: "xCVBNMASDFGHJKLERTYUIO"
+```
+### HarmonyOS用户，需要Bark推送的
+
+```yaml
+Meow:
+  - username: "a10000000"
+  - username: ""
 ```
 
 ### 需要企业微信应用消息的

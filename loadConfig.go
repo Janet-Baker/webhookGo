@@ -31,6 +31,7 @@ type ConfigLoader struct {
 	ContactBilibili bool                            `yaml:"contact_bilibili"`
 	Barks           []messageSender.BarkServer      `yaml:"Bark"`
 	WXWorkApps      []messageSender.WXWorkAppTarget `yaml:"WXWorkApp"`
+	Meow            []messageSender.MeowServer      `yaml:"Meow"`
 	Receivers       []Receiver                      `yaml:"Receivers"`
 }
 
@@ -84,6 +85,15 @@ func loadConfig() initStruct {
 				configuration.Barks[i].ServerUrl = "https://api.day.app/"
 			}
 			configuration.Barks[i].RegisterServer()
+			senderCount++
+		}
+	}
+	if len(configuration.Meow) > 0 {
+		for i := 0; i < len(configuration.Meow); i++ {
+			if configuration.Meow[i].Username == "" {
+				continue
+			}
+			configuration.Meow[i].RegisterServer()
 			senderCount++
 		}
 	}

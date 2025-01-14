@@ -10,6 +10,10 @@ Bark:
   - url: "https://api.day.app/"
     device_key: ""
 
+Meow:
+  - username: ""
+  - username: ""
+
 WXWorkApp:
 #  - corpId: "ww123456789a01b2c3"
 #    appSecret: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFG"
