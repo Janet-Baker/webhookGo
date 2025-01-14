@@ -100,7 +100,7 @@ func (barkServer BarkServer) sendMessage(message Message) error {
 		buf.Reset()                    // Reset the buffer for reuse
 		defer bytesBufferPool.Put(buf) // Return the buffer to the pool
 		_, _ = buf.ReadFrom(resp.Body)
-		log.Debug("发送Bark消息响应：%+v", buf.String())
+		log.Debug("发送Bark消息响应：", buf.String())
 	}
 	return nil
 }
