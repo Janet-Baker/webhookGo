@@ -23,6 +23,7 @@ var messageHandlers = map[string]func(*gin.Context){
 	"Blrec":            webhookHandler.BlrecWebhookHandler,
 	"DDTV3":            webhookHandler.DDTV3WebhookHandler,
 	"DDTV5":            webhookHandler.DDTV5WebhookHandler,
+	"Bypass":           webhookHandler.BypassHandler,
 }
 
 func main() {

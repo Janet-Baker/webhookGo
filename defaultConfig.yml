@@ -451,3 +451,6 @@ Receivers:
         notify: false
         have_command: false
         exec_command: ""
+  - type: "Bypass"
+    enable: true
+    path: "/bypass"
