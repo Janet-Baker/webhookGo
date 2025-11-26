@@ -27,6 +27,11 @@ echo ⏰ 构建时间: %BUILD_TIME%
 echo 🔧 Git提交: %GIT_COMMIT%
 echo.
 
+echo 📥 检查和更新依赖...
+go mod tidy
+go mod verify
+
+echo.
 REM 开始构建
 call :build linux amd64 "" webhookGo-linux-amd64
 call :build linux arm64 "" webhookGo-linux-arm64

@@ -36,6 +36,11 @@ platforms=(
     "freebsd/amd64"
 )
 
+# 确保依赖正确
+echo "📥 检查和更新依赖..."
+go mod tidy
+go mod verify
+
 # 开始构建
 for platform in "${platforms[@]}"; do
     IFS='/' read -r goos goarch goarm <<< "$platform"

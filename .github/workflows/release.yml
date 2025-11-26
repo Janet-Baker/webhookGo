@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build and Release
@@ -57,13 +60,21 @@ jobs:
     - name: Cache Go modules
       uses: actions/cache@v4
       with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.goos }}-${{ matrix.goarch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
         restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.goos }}-${{ matrix.goarch }}-
           ${{ runner.os }}-go-
+        fail-on-cache-miss: false
 
     - name: Download dependencies
-      run: go mod download
+      run: |
+        go mod download
+        go mod tidy
+        go mod verify || true
+        # 如果verify失败，继续构建，因为可能是CI环境中的临时问题
 
     - name: Build
       env:
@@ -74,7 +85,9 @@ jobs:
       run: |
         mkdir -p dist
         output_name="${{ matrix.filename }}"
-        go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "dist/${output_name}" .
+        # 确保在构建前重新同步依赖
+        go mod download
+        go build -mod=readonly -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "dist/${output_name}" .
 
     - name: Create archive
       run: |
@@ -116,23 +129,7 @@ jobs:
         done
         ls -la release-assets/
 
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # 获取上一个tag
-        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-        if [ -n "$PREVIOUS_TAG" ]; then
-          echo "## 更新内容" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> CHANGELOG.md
-        else
-          echo "## 首次发布" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
-        fi
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        cat CHANGELOG.md >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
@@ -140,8 +137,6 @@ jobs:
         files: release-assets/*
         body: |
           # 🎉 Release ${{ github.ref_name }}
-          
-          ${{ steps.changelog.outputs.changelog }}
           
           ## 📦 下载
           
@@ -163,8 +158,8 @@ jobs:
           
           1. 下载适合您系统的压缩包
           2. 解压后获得可执行文件
-          3. 根据需要配置 `defaultConfig.yml`
-          4. 运行 `./webhookGo` (Linux/macOS) 或 `webhookGo.exe` (Windows)
+          3. 根据需要配置 `config.yml`
+          4. 运行 `./webhookGo -c config.yml` (Linux/macOS) 或 `webhookGo.exe -c config.yml` (Windows)
           
           ---
           

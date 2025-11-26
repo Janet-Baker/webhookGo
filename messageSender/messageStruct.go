@@ -45,7 +45,6 @@ func (message *GeneralPushMessage) SendToAllTargets() {
 			servers[i].SendMessage(message)
 		}(i)
 	}
-	return
 }
 
 type MessageServer interface {

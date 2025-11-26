@@ -52,7 +52,6 @@ func reqHeaderSetter(header *http.Header) {
 	header.Set("Sec-Fetch-Site", "same-site")
 	header.Set("Sec-Gpc", "1")
 	header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.55")
-	return
 }
 func getAndUnmarshal(url string, v any) error {
 	req, errRequest := http.NewRequest("GET", url, nil)
