@@ -193,5 +193,4 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debug("发送企业微信应用消息成功 响应消息", string(content))
 	}
-	return
 }

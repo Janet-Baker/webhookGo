@@ -37,7 +37,7 @@ func ddtv3TaskRunner(path string, content []byte) {
 
 	// 判断事件类型
 	eventType := getter.GetInt("type")
-	eventSettings, _ := ddtv3Settings[path][eventType]
+	eventSettings := ddtv3Settings[path][eventType]
 	switch eventType {
 	//	0 StartLive 主播开播
 	case 0:
@@ -75,7 +75,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	1 StopLive 主播下播
 	case 1:
@@ -122,7 +121,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	2 StartRec 开始录制
 	//	3 RecComplete 录制结束
@@ -168,7 +166,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	10 RunShellComplete 执行Shell命令完成
 	//	16 ShellExecutionComplete 执行Shell命令结束
@@ -212,7 +209,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	11 DownloadEndMissionSuccess 下载任务成功结束
 	case 11:
@@ -256,7 +252,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	12 SpaceIsInsufficientWarn 剩余空间不足
 	//	14 LoginWillExpireSoon 登陆即将失效
@@ -276,7 +271,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	13 LoginFailure 登陆失效
 	case 13:
@@ -290,7 +284,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	15 UpdateAvailable 有可用新版本
 	case 15:
@@ -307,7 +300,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	19 RoomLocked 直播间被封禁
 	case 19:
@@ -343,7 +335,6 @@ func ddtv3TaskRunner(path string, content []byte) {
 			}
 			msg.SendToAllTargets()
 		}
-		break
 
 	//	别的不关心，所以没写
 	default:

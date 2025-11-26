@@ -76,15 +76,20 @@ func (message *BililiveRecorderMessageStruct) GetContent() string {
 		contentBuilder.WriteString(message.EventData.RelativePath)
 		contentBuilder.WriteString("\n- 文件打开时间：")
 		contentBuilder.WriteString(message.EventData.FileOpenTime)
-		fallthrough
+
 	case "FileClosed":
+		contentBuilder.WriteString("\n- 录制任务：")
+		contentBuilder.WriteString(message.EventData.SessionId)
+		contentBuilder.WriteString("\n- 文件：")
+		contentBuilder.WriteString(message.EventData.RelativePath)
+		contentBuilder.WriteString("\n- 文件打开时间：")
+		contentBuilder.WriteString(message.EventData.FileOpenTime)
 		contentBuilder.WriteString("\n- 时长：")
 		contentBuilder.WriteString(secondsToString(message.EventData.Duration))
 		contentBuilder.WriteString("\n- 文件大小：")
 		contentBuilder.WriteString(formatStorageSpace(message.EventData.FileSize))
 		contentBuilder.WriteString("\n- 文件关闭时间：")
 		contentBuilder.WriteString(message.EventData.FileCloseTime)
-		break
 
 	case "StreamStarted":
 		liveStatus, liveTime := bilibiliInfo.GetLiveStatusString(message.EventData.RoomId)
