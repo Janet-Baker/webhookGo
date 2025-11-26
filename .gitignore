@@ -26,3 +26,22 @@ go.sum
 .vs
 
 secrets.yml
+
+# Build artifacts
+dist/
+build/
+webhookGo-*
+
+# Temporary files
+*.tmp
+*.log
+CHANGELOG.md
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

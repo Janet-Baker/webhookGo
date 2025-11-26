@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - goos: linux
+            goarch: amd64
+            filename: webhookGo-linux-amd64
+          - goos: linux
+            goarch: arm64
+            filename: webhookGo-linux-arm64
+          - goos: linux
+            goarch: 386
+            filename: webhookGo-linux-386
+          - goos: linux
+            goarch: arm
+            goarm: 7
+            filename: webhookGo-linux-armv7
+          # Windows
+          - goos: windows
+            goarch: amd64
+            filename: webhookGo-windows-amd64.exe
+          - goos: windows
+            goarch: 386
+            filename: webhookGo-windows-386.exe
+          # macOS
+          - goos: darwin
+            goarch: amd64
+            filename: webhookGo-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            filename: webhookGo-darwin-arm64
+          # FreeBSD
+          - goos: freebsd
+            goarch: amd64
+            filename: webhookGo-freebsd-amd64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.6'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        GOARM: ${{ matrix.goarm }}
+        CGO_ENABLED: 0
+      run: |
+        mkdir -p dist
+        output_name="${{ matrix.filename }}"
+        go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "dist/${output_name}" .
+
+    - name: Create archive
+      run: |
+        cd dist
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          zip "../${{ matrix.filename }}.zip" *
+        else
+          tar -czf "../${{ matrix.filename }}.tar.gz" *
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.filename }}
+        path: |
+          ${{ matrix.filename }}.*
+        retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+        find artifacts -name "*.zip" -o -name "*.tar.gz" | while read file; do
+          cp "$file" "release-assets/"
+        done
+        ls -la release-assets/
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 获取上一个tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## 更新内容" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> CHANGELOG.md
+        else
+          echo "## 首次发布" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" >> CHANGELOG.md
+        fi
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat CHANGELOG.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release-assets/*
+        body: |
+          # 🎉 Release ${{ github.ref_name }}
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## 📦 下载
+          
+          选择适合您系统的二进制文件：
+          
+          | 系统 | 架构 | 文件名 |
+          |------|------|--------|
+          | Linux | x86_64 | webhookGo-linux-amd64.tar.gz |
+          | Linux | ARM64 | webhookGo-linux-arm64.tar.gz |
+          | Linux | x86 (32位) | webhookGo-linux-386.tar.gz |
+          | Linux | ARM v7 | webhookGo-linux-armv7.tar.gz |
+          | Windows | x86_64 | webhookGo-windows-amd64.zip |
+          | Windows | x86 (32位) | webhookGo-windows-386.zip |
+          | macOS | x86_64 | webhookGo-darwin-amd64.tar.gz |
+          | macOS | ARM64 (Apple Silicon) | webhookGo-darwin-arm64.tar.gz |
+          | FreeBSD | x86_64 | webhookGo-freebsd-amd64.tar.gz |
+          
+          ## 🚀 使用方法
+          
+          1. 下载适合您系统的压缩包
+          2. 解压后获得可执行文件
+          3. 根据需要配置 `defaultConfig.yml`
+          4. 运行 `./webhookGo` (Linux/macOS) 或 `webhookGo.exe` (Windows)
+          
+          ---
+          
+          **自动发布于** ${{ github.event.head_commit.timestamp }}
+        draft: false
+        prerelease: false
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

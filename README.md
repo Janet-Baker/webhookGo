@@ -2,6 +2,42 @@
 
 目的：接受来自直播录制程序的Webhook请求，然后给用户设置的目标（现在是Bark和企业微信）推送消息。
 
+## 🚀 自动构建和发布
+
+本项目使用 GitHub Actions 进行自动构建和发布。当您推送新的标签（如 `v1.0.0`）时，系统会自动：
+
+1. 🏗️ 为所有主流平台和架构编译二进制文件
+2. 📦 创建压缩包并上传到 Releases
+3. 📝 自动生成发布说明和变更日志
+
+### 支持的平台
+
+| 系统 | 架构 | 文件名 |
+|------|------|--------|
+| Linux | x86_64 | webhookGo-linux-amd64.tar.gz |
+| Linux | ARM64 | webhookGo-linux-arm64.tar.gz |
+| Linux | x86 (32位) | webhookGo-linux-386.tar.gz |
+| Linux | ARM v7 | webhookGo-linux-armv7.tar.gz |
+| Windows | x86_64 | webhookGo-windows-amd64.zip |
+| Windows | x86 (32位) | webhookGo-windows-386.zip |
+| macOS | x86_64 | webhookGo-darwin-amd64.tar.gz |
+| macOS | ARM64 (Apple Silicon) | webhookGo-darwin-arm64.tar.gz |
+| FreeBSD | x86_64 | webhookGo-freebsd-amd64.tar.gz |
+
+### 如何发布新版本
+
+1. 确保代码已合并到 `master` 分支
+2. 创建并推送新标签：
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. GitHub Actions 会自动构建并发布新版本
+
+---
+
+## 💻 用法
+
 ## 用法：
 1. 在[release页面](https://github.com/Janet-Baker/webhookGo/releases)，
 找当前系统环境可以运行的软件包，下载下来。

@@ -1,2 +1,23 @@
 # Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
+
+# These files are text and should be normalized (Convert CRLF to LF)
+*.go text diff=go
+*.yml text
+*.yaml text
+*.md text
+*.json text
+*.txt text
+*.sh text
+
+# These files are binary and should be left untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.exe binary
