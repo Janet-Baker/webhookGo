@@ -3,13 +3,14 @@ package messageSender
 import (
 	"bytes"
 	"errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/valyala/fastjson"
 	"io"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/valyala/fastjson"
 )
 
 type noCopy struct{}
@@ -167,6 +168,12 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 		log.Error("发送企业微信应用消息 请求失败", err.Error())
 		return
 	}
+	defer func(Body io.ReadCloser) {
+		errCloser := Body.Close()
+		if errCloser != nil {
+			log.Error("发送企业微信应用消息 关闭连接失败", errCloser.Error())
+		}
+	}(resp.Body)
 
 	// 读取响应消息
 	content, errReader := io.ReadAll(resp.Body)
@@ -174,12 +181,6 @@ func (app WXWorkAppTarget) SendMessage(message Message) {
 		log.Error("发送企业微信应用消息 读取响应内容失败", errReader.Error())
 		return
 	}
-	defer func(Body io.ReadCloser) {
-		errCloser := Body.Close()
-		if errCloser != nil {
-			log.Error("发送企业微信应用消息 关闭连接失败", errCloser.Error())
-		}
-	}(resp.Body)
 	var p fastjson.Parser
 	getter, errOfJsonParser := p.ParseBytes(content)
 	if errOfJsonParser != nil {
