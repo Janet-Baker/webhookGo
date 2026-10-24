@@ -2,10 +2,11 @@ package webhookHandler
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Event 每个事件的设置项

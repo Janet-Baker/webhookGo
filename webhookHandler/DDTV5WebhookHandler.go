@@ -2,8 +2,6 @@ package webhookHandler
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,11 +9,15 @@ import (
 	"time"
 	"webhookGo/bilibiliInfo"
 	"webhookGo/messageSender"
+
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 // Core/LogModule/Opcode.cs
 const (
 	/* Config */
+
 	// ReadingConfigurationFile 读取配置文件
 	ReadingConfigurationFile = 10101
 	// UpdateToConfigurationFile 更新到配置文件
@@ -28,7 +30,9 @@ const (
 	ModifyConfiguration = 10105
 	// UpdateDetect 检测到更新
 	UpdateDetect = 10106
+
 	/* Room */
+
 	// SuccessfullyAddedRoom 新增房间配置成功
 	SuccessfullyAddedRoom = 20101
 	// FailedToAddRoomConfiguration 新增房间配置失败
@@ -58,6 +62,7 @@ const (
 	// FailedToAddRecordingTask 新增录制任务失败
 	FailedToAddRecordingTask = 20114
 	/* Account */
+
 	// UserConsentAgreement 用户同意协议
 	UserConsentAgreement = 30101
 	// UserDoesNotAgreeToAgreement 用户未同意协议
@@ -79,6 +84,7 @@ const (
 	// QrCodeExpir 二维码已过期
 	QrCodeExpir = 30110
 	/* Download */
+
 	// SaveBulletScreenFile 保存弹幕相关文件
 	SaveBulletScreenFile = 40101
 	// StartLiveEvent 触发开播事件
@@ -343,18 +349,15 @@ func (message *DDTV5MessageStruct) GetTitle() string {
 	if message.Code > 40000 {
 		name := message.Data.Name
 		if message.Code == RecordingEnd || message.Code == StopLiveEvent || message.Code == EndBroadcastingReminder {
-			if message.Data.IsLocked.Value {
-				return name + "喜提直播间封禁"
-			}
 			// 封禁检测
 			if message.Data.IsLocked.Value {
 				return name + "喜提直播间封禁"
-			} else {
-				return name + " 下播了"
 			}
-		} else {
-			return name + " " + ddtv5IdEventNameMap[message.Code]
+
+			return name + " 下播了"
 		}
+
+		return name + " " + ddtv5IdEventNameMap[message.Code]
 	}
 	return "DDTV5 " + message.Message
 }
@@ -362,44 +365,44 @@ func (message *DDTV5MessageStruct) GetTitle() string {
 func (message *DDTV5MessageStruct) GetContent() string {
 	if message.Data == nil {
 		return message.Message
-	} else {
-		var msgContentBuilder strings.Builder
-		msgContentBuilder.WriteString("- 主播：[")
-		msgContentBuilder.WriteString(message.Data.Name)
-		msgContentBuilder.WriteString("](https://live.bilibili.com/")
-		msgContentBuilder.WriteString(strconv.FormatInt(message.Data.RoomId, 10))
-		msgContentBuilder.WriteString(")\n- 标题：")
-		msgContentBuilder.WriteString(message.Data.Title.Value)
-		msgContentBuilder.WriteString("\n- 分区：")
-		if len(message.Data.AreaV2ParentName.Value) == 0 {
-			message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaV2ParentName(message.Data.RoomId)
-		}
-		msgContentBuilder.WriteString(message.Data.AreaV2ParentName.Value)
-		msgContentBuilder.WriteString(" - ")
-		if len(message.Data.AreaV2Name.Value) == 0 {
-			message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.RoomId)
-		}
-		msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
-		switch message.Code {
-		case StartLiveEvent:
-			if message.Data.LiveStatus.Value == 1 {
+	}
+
+	var msgContentBuilder strings.Builder
+	msgContentBuilder.WriteString("- 主播：[")
+	msgContentBuilder.WriteString(message.Data.Name)
+	msgContentBuilder.WriteString("](https://live.bilibili.com/")
+	msgContentBuilder.WriteString(strconv.FormatInt(message.Data.RoomId, 10))
+	msgContentBuilder.WriteString(")\n- 标题：")
+	msgContentBuilder.WriteString(message.Data.Title.Value)
+	msgContentBuilder.WriteString("\n- 分区：")
+	if len(message.Data.AreaV2ParentName.Value) == 0 {
+		message.Data.AreaV2ParentName.Value = bilibiliInfo.GetAreaV2ParentName(message.Data.RoomId)
+	}
+	msgContentBuilder.WriteString(message.Data.AreaV2ParentName.Value)
+	msgContentBuilder.WriteString(" - ")
+	if len(message.Data.AreaV2Name.Value) == 0 {
+		message.Data.AreaV2Name.Value = bilibiliInfo.GetAreaV2Name(message.Data.RoomId)
+	}
+	msgContentBuilder.WriteString(message.Data.AreaV2Name.Value)
+	switch message.Code {
+	case StartLiveEvent:
+		if message.Data.LiveStatus.Value == 1 {
+			msgContentBuilder.WriteString("\n- 开播时间：")
+			msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
+		} else {
+			message.Data.LiveStatus.Value, message.Data.LiveTime.Value = bilibiliInfo.GetLiveStatus(message.Data.RoomId)
+			if message.Data.LiveStatus.Value > 0 {
 				msgContentBuilder.WriteString("\n- 开播时间：")
 				msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
-			} else {
-				message.Data.LiveStatus.Value, message.Data.LiveTime.Value = bilibiliInfo.GetLiveStatus(message.Data.RoomId)
-				if message.Data.LiveStatus.Value > 0 {
-					msgContentBuilder.WriteString("\n- 开播时间：")
-					msgContentBuilder.WriteString(time.Unix(message.Data.LiveTime.Value, 0).Format("2006-01-02 15:04:05"))
-				}
-			}
-		case RecordingEnd, StopLiveEvent, EndBroadcastingReminder:
-			if message.Data.IsLocked.Value {
-				msgContentBuilder.WriteString("\n- 直播间封禁至：")
-				msgContentBuilder.WriteString(message.Data.LockTill.Value)
 			}
 		}
-		return msgContentBuilder.String()
+	case RecordingEnd, StopLiveEvent, EndBroadcastingReminder:
+		if message.Data.IsLocked.Value {
+			msgContentBuilder.WriteString("\n- 直播间封禁至：")
+			msgContentBuilder.WriteString(message.Data.LockTill.Value)
+		}
 	}
+	return msgContentBuilder.String()
 }
 
 func (message *DDTV5MessageStruct) GetIconURL() string {
@@ -412,9 +415,9 @@ func (message *DDTV5MessageStruct) GetIconURL() string {
 	avatar, err := bilibiliInfo.GetAvatarByUid(message.Data.UID)
 	if err != nil {
 		return ""
-	} else {
-		return avatar
 	}
+
+	return avatar
 }
 
 func (message *DDTV5MessageStruct) SendToAllTargets() {

@@ -3,10 +3,11 @@ package messageSender
 import (
 	"bytes"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"net/url"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const meowServerUrl = "http://api.chuckfang.com/"

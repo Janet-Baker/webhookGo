@@ -21,7 +21,7 @@ func NewAutoCleanupCache() *Cache {
 
 // CleanUp 遍历缓存，删除过期的缓存
 func (c *Cache) CleanUp() {
-	c.Range(func(key, value interface{}) bool {
+	c.Range(func(key, value any) bool {
 		if time.Now().Unix()-value.(int64) > expireTime {
 			c.Delete(key.(string))
 		}

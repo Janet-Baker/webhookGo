@@ -2,8 +2,9 @@ package messageSender
 
 import (
 	"bytes"
-	log "github.com/sirupsen/logrus"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Message interface {

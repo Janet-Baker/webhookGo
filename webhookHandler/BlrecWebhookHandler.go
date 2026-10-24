@@ -2,8 +2,6 @@ package webhookHandler
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,6 +9,9 @@ import (
 	"time"
 	"webhookGo/bilibiliInfo"
 	"webhookGo/messageSender"
+
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 type BlrecMessageStruct struct {
@@ -25,7 +26,7 @@ type BlrecMessageStruct struct {
 			Uid    int64  `json:"uid"`
 			Level  int    `json:"level"`
 			Sign   string `json:"sign"`
-		} `json:"user_info,omitempty"` // "LiveBeganEvent", "LiveEndedEvent"
+		} `json:"user_info"` // "LiveBeganEvent", "LiveEndedEvent"
 		RoomInfo struct {
 			Uid            int64  `json:"uid"`
 			RoomId         int64  `json:"room_id"`
@@ -44,7 +45,7 @@ type BlrecMessageStruct struct {
 			// 下播时更新
 			isLocked bool
 			lockTill int64
-		} `json:"room_info,omitempty"` // "LiveBeganEvent", "LiveEndedEvent", "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent"
+		} `json:"room_info"` // "LiveBeganEvent", "LiveEndedEvent", "RoomChangeEvent", "RecordingStartedEvent", "RecordingFinishedEvent", "RecordingCancelledEvent"
 		RoomId    int64    `json:"room_id,omitempty"`   // "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "PostprocessingCompletedEvent"
 		Path      string   `json:"path,omitempty"`      // "VideoFileCreatedEvent", "VideoFileCompletedEvent", "DanmakuFileCreatedEvent", "DanmakuFileCompletedEvent", "RawDanmakuFileCreatedEvent", "RawDanmakuFileCompletedEvent", "CoverImageDownloadedEvent", "VideoPostprocessingCompletedEvent", "SpaceNoEnoughEvent"
 		Files     []string `json:"files,omitempty"`     // "PostprocessingCompletedEvent"
@@ -53,7 +54,7 @@ type BlrecMessageStruct struct {
 			Total int64 `json:"total"`
 			Used  int64 `json:"used"`
 			Free  int64 `json:"free"`
-		} `json:"usage,omitempty"` // "SpaceNoEnoughEvent"
+		} `json:"usage"` // "SpaceNoEnoughEvent"
 		Name   string `json:"name,omitempty"`   // "Error"
 		Detail string `json:"detail,omitempty"` // "Error"
 	} `json:"data"`

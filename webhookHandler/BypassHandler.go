@@ -2,10 +2,11 @@ package webhookHandler
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"webhookGo/messageSender"
+
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func BypassHandler(c *gin.Context) {

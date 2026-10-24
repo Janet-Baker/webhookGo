@@ -2,8 +2,6 @@ package webhookHandler
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strconv"
@@ -11,6 +9,9 @@ import (
 	"time"
 	"webhookGo/bilibiliInfo"
 	"webhookGo/messageSender"
+
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 type BililiveRecorderMessageStruct struct {
